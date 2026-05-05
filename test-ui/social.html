@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RootSync — Social Post</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0f0f0f; color: #f0f0f0;
+      min-height: 100vh; display: flex; flex-direction: column;
+    }
+    header {
+      background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+      padding: 14px 20px; display: flex; align-items: center; gap: 12px;
+    }
+    .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #e1306c, #f77737);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    header h1 { font-size: 17px; font-weight: 600; }
+    header .sub { font-size: 12px; color: #888; margin-top: 2px; }
+    header a {
+      margin-left: auto; font-size: 12px; color: #555; text-decoration: none;
+      padding: 6px 12px; border: 1px solid #2a2a2a; border-radius: 6px; transition: all .2s;
+    }
+    header a:hover { color: #00b87a; border-color: #00b87a; }
+
+    .container { max-width: 560px; width: 100%; margin: 36px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 18px; }
+
+    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .card h2 { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+
+    label { font-size: 12px; color: #888; display: block; margin-bottom: 5px; }
+    textarea {
+      background: #222; border: 1px solid #333; border-radius: 8px; color: #eee;
+      padding: 10px 12px; font-size: 14px; font-family: inherit; width: 100%;
+      resize: vertical; min-height: 72px; transition: border-color .2s;
+    }
+    textarea:focus { outline: none; border-color: #e1306c; }
+
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed #333; border-radius: 10px; padding: 36px 20px;
+      text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+    }
+    #drop-zone:hover, #drop-zone.over { border-color: #e1306c; background: #e1306c0a; }
+    #drop-zone.has-file { border-color: #00b87a; background: #00b87a08; }
+    #drop-zone .dz-icon { font-size: 34px; margin-bottom: 8px; }
+    #drop-zone .dz-hint { font-size: 13px; color: #666; }
+    #drop-zone .dz-hint span { color: #e1306c; text-decoration: underline; }
+    #file-input { display: none; }
+
+    /* File preview */
+    #file-preview {
+      display: none; align-items: center; gap: 12px;
+      background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px;
+    }
+    #file-preview.show { display: flex; }
+    #prev-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; display: none; }
+    #prev-thumb.show { display: block; }
+    #prev-vid { width: 50px; height: 50px; background: #222; border-radius: 6px; display: none; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    #prev-vid.show { display: flex; }
+    .prev-info { flex: 1; overflow: hidden; }
+    .prev-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prev-size { font-size: 11px; color: #666; margin-top: 2px; }
+    #remove-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 18px; border-radius: 4px; padding: 4px; transition: color .2s; }
+    #remove-btn:hover { color: #ef4444; }
+
+    /* Platforms */
+    .platforms { display: flex; gap: 10px; flex-wrap: wrap; }
+    .plat {
+      display: flex; align-items: center; gap: 6px; background: #222;
+      border: 1px solid #333; border-radius: 8px; color: #aaa;
+      padding: 8px 14px; font-size: 13px; cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .plat.on { border-color: #e1306c; color: #e1306c; background: #e1306c18; }
+    .plat .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+    .plat.on .dot { background: #e1306c; box-shadow: 0 0 5px #e1306c; }
+
+    /* Progress */
+    #prog-wrap { display: none; background: #222; border-radius: 6px; height: 6px; overflow: hidden; }
+    #prog-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #e1306c, #f77737); transition: width .2s; border-radius: 6px; }
+
+    /* Submit */
+    #submit-btn {
+      background: linear-gradient(135deg, #e1306c, #f77737); border: none; border-radius: 8px;
+      color: #fff; font-size: 15px; font-weight: 600; padding: 12px; cursor: pointer; width: 100%; transition: opacity .2s;
+    }
+    #submit-btn:hover { opacity: .88; }
+    #submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Status card */
+    #status-card {
+      display: none; background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 20px; flex-direction: column; gap: 14px;
+    }
+    #status-card.show { display: flex; }
+    #status-card h2 { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+
+    .status-row { display: flex; align-items: center; gap: 10px; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    }
+    .status-badge.pending  { background: #78350f22; border: 1px solid #92400e; color: #fbbf24; }
+    .status-badge.success  { background: #052e1622; border: 1px solid #065f46; color: #34d399; }
+    .status-badge.error    { background: #450a0a22; border: 1px solid #7f1d1d; color: #f87171; }
+    .status-badge.processing { background: #1e1b4b22; border: 1px solid #3730a3; color: #a5b4fc; }
+
+    .pulse { width: 8px; height: 8px; border-radius: 50%; animation: pulse 1.2s infinite; }
+    .pulse.yellow { background: #fbbf24; box-shadow: 0 0 0 0 #fbbf2455; }
+    .pulse.blue   { background: #a5b4fc; box-shadow: 0 0 0 0 #a5b4fc55; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    #status-detail { font-size: 12px; font-family: monospace; color: #666; line-height: 1.6; word-break: break-all; }
+    #request-id-row { font-size: 11px; color: #444; font-family: monospace; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff4; border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📸</div>
+  <div>
+    <h1>Social Post</h1>
+    <div class="sub">Upload media to Instagram via upload-post.com</div>
+  </div>
+  <a href="/">← Chat</a>
+</header>
+
+<div class="container">
+  <div class="card">
+    <h2>New Post</h2>
+
+    <!-- Drop zone -->
+    <div>
+      <label>Media File (video or image)</label>
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="dz-icon">🎬</div>
+        <div class="dz-hint">Drag & drop here, or <span>browse</span></div>
+        <input type="file" id="file-input" accept="video/*,image/*" />
+      </div>
+      <div id="file-preview">
+        <img id="prev-thumb" alt="" />
+        <div id="prev-vid">🎬</div>
+        <div class="prev-info">
+          <div class="prev-name" id="prev-name"></div>
+          <div class="prev-size" id="prev-size"></div>
+        </div>
+        <button id="remove-btn" onclick="clearFile()">✕</button>
+      </div>
+    </div>
+
+    <!-- Caption -->
+    <div>
+      <label>Caption</label>
+      <textarea id="title" placeholder="Write your caption here…"></textarea>
+    </div>
+
+    <!-- Platforms -->
+    <div>
+      <label>Platforms</label>
+      <div class="platforms">
+        <div class="plat on" data-p="instagram"><span class="dot"></span> Instagram</div>
+        <div class="plat"    data-p="tiktok">   <span class="dot"></span> TikTok</div>
+        <div class="plat"    data-p="facebook"> <span class="dot"></span> Facebook</div>
+      </div>
+    </div>
+
+    <div id="prog-wrap"><div id="prog-bar"></div></div>
+    <button id="submit-btn" onclick="submitPost()">Post Now</button>
+  </div>
+
+  <!-- Status card (shown after submit) -->
+  <div id="status-card">
+    <h2>Upload Status</h2>
+    <div class="status-row">
+      <span id="status-badge" class="status-badge pending"><span class="pulse yellow"></span> Pending</span>
+    </div>
+    <div id="request-id-row"></div>
+    <div id="status-detail">Waiting for update…</div>
+  </div>
+</div>
+
+<script>
+  let selectedFile = null;
+  let pollTimer = null;
+
+  // Platform toggles
+  document.querySelectorAll('.plat').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
+
+  // File input
+  document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+  // Drag & drop
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    zone.classList.add('has-file');
+    zone.querySelector('.dz-icon').textContent = '✓';
+    zone.querySelector('.dz-hint').textContent = f.name;
+
+    document.getElementById('prev-name').textContent = f.name;
+    document.getElementById('prev-size').textContent = fmtBytes(f.size);
+
+    const thumb = document.getElementById('prev-thumb');
+    const vid   = document.getElementById('prev-vid');
+    if (f.type.startsWith('image/')) {
+      thumb.src = URL.createObjectURL(f); thumb.classList.add('show'); vid.classList.remove('show');
+    } else {
+      thumb.classList.remove('show'); vid.classList.add('show');
+    }
+    document.getElementById('file-preview').classList.add('show');
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    document.getElementById('file-input').value = '';
+    zone.classList.remove('has-file');
+    zone.querySelector('.dz-icon').textContent = '🎬';
+    zone.querySelector('.dz-hint').innerHTML = 'Drag & drop here, or <span>browse</span>';
+    document.getElementById('file-preview').classList.remove('show');
+    document.getElementById('prev-thumb').classList.remove('show');
+    document.getElementById('prev-vid').classList.remove('show');
+  }
+
+  function fmtBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  async function submitPost() {
+    const title = document.getElementById('title').value.trim();
+    const platforms = [...document.querySelectorAll('.plat.on')].map(b => b.dataset.p);
+
+    if (!selectedFile)       return alert('Please select a file.');
+    if (!title)              return alert('Please enter a caption.');
+    if (!platforms.length)   return alert('Select at least one platform.');
+
+    const btn = document.getElementById('submit-btn');
+    const pw  = document.getElementById('prog-wrap');
+    const pb  = document.getElementById('prog-bar');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Uploading…';
+    pw.style.display = 'block'; pb.style.width = '0%';
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    fd.append('title', title);
+    fd.append('platforms', JSON.stringify(platforms));
+
+    try {
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/social/post');
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable) pb.style.width = Math.round(e.loaded / e.total * 85) + '%';
+        });
+        xhr.onload = () => {
+          pb.style.width = '100%';
+          try { resolve({ status: xhr.status, body: JSON.parse(xhr.responseText) }); }
+          catch { reject(new Error('Invalid server response')); }
+        };
+        xhr.onerror = () => reject(new Error('Network error — is the server running?'));
+        xhr.send(fd);
+      });
+
+      if (data.status !== 200) throw new Error(data.body.error || `Server error ${data.status}`);
+
+      // Show status card and start polling
+      const requestId = data.body.result?.request_id;
+      showStatusCard(requestId);
+      if (requestId) startPolling(requestId);
+
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Post Now';
+      setTimeout(() => { pw.style.display = 'none'; pb.style.width = '0%'; }, 1000);
+    }
+  }
+
+  function showStatusCard(requestId) {
+    const card = document.getElementById('status-card');
+    card.classList.add('show');
+    document.getElementById('request-id-row').textContent = requestId ? 'Request ID: ' + requestId : '';
+    setStatus('processing', '⏳ Processing…');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function setStatus(type, label, detail) {
+    const badge = document.getElementById('status-badge');
+    badge.className = 'status-badge ' + type;
+
+    const icons = { pending: '<span class="pulse yellow"></span>', processing: '<span class="pulse blue"></span>', success: '✓', error: '✗' };
+    badge.innerHTML = (icons[type] || '') + ' ' + label;
+
+    if (detail !== undefined) document.getElementById('status-detail').textContent = detail;
+  }
+
+  function startPolling(requestId) {
+    if (pollTimer) clearInterval(pollTimer);
+    let attempts = 0;
+    const max = 40; // ~2 minutes
+
+    pollTimer = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch('/api/social/status?request_id=' + encodeURIComponent(requestId));
+        const data = await res.json();
+
+        const overallStatus = data.status || data.overall_status || '';
+        const detail = JSON.stringify(data, null, 2);
+
+        if (/success|complete|done/i.test(overallStatus)) {
+          setStatus('success', 'Posted successfully!', detail);
+          clearInterval(pollTimer);
+        } else if (/fail|error/i.test(overallStatus)) {
+          setStatus('error', 'Upload failed', detail);
+          clearInterval(pollTimer);
+        } else {
+          setStatus('processing', overallStatus || 'Processing…', detail);
+        }
+      } catch (e) {
+        document.getElementById('status-detail').textContent = 'Status check failed: ' + e.message;
+      }
+
+      if (attempts >= max) {
+        clearInterval(pollTimer);
+        setStatus('error', 'Timed out — check upload-post.com dashboard', '');
+      }
+    }, 3000);
+  }
+</script>
+</body>
+</html>

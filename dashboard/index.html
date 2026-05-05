@@ -1,0 +1,310 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RootSync — Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: #f0f0f0; min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: #1a1a1a; border-bottom: 1px solid #2a2a2a; padding: 12px 24px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+    .logo { width: 34px; height: 34px; background: linear-gradient(135deg, #00b87a, #00d4ff); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; color: #000; flex-shrink: 0; }
+    header h1 { font-size: 16px; font-weight: 600; }
+    header .sub { font-size: 11px; color: #555; margin-top: 2px; }
+    .header-right { margin-right: auto; margin-left: 0; display: flex; align-items: center; gap: 10px; }
+    .stat-chip { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid transparent; }
+    .stat-chip.urgent { background: #2a0a0a; border-color: #ef4444; color: #ef4444; }
+    .stat-chip.hot    { background: #1a1200; border-color: #f59e0b; color: #f59e0b; }
+    .stat-chip.cold   { background: #0a0f1a; border-color: #3b82f6; color: #3b82f6; }
+    .stat-chip.total  { background: #1a1a1a; border-color: #444;    color: #aaa; }
+    #sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: background .3s; }
+    #sync-dot.ok  { background: #00b87a; box-shadow: 0 0 5px #00b87a; }
+    #sync-dot.err { background: #ef4444; }
+    #filter-bar { padding: 10px 24px; background: #141414; border-bottom: 1px solid #222; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+    .filter-label { font-size: 11px; color: #444; margin-left: 4px; }
+    .fbtn { padding: 4px 14px; border-radius: 20px; font-size: 12px; border: 1px solid #2a2a2a; background: #1a1a1a; color: #555; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .fbtn:hover { border-color: #555; color: #aaa; }
+    .fbtn.on-all    { border-color: #aaa;    color: #eee;    background: #222; }
+    .fbtn.on-urgent { border-color: #ef4444; color: #ef4444; background: #2a0a0a; }
+    .fbtn.on-hot    { border-color: #f59e0b; color: #f59e0b; background: #1a1200; }
+    .fbtn.on-cold   { border-color: #3b82f6; color: #3b82f6; background: #0a0f1a; }
+    .fbtn.on-ni     { border-color: #555;    color: #888;    background: #1a1a1a; }
+    #search-box { margin-right: auto; margin-left: 0; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; color: #eee; padding: 5px 12px; font-size: 12px; font-family: inherit; width: 200px; outline: none; transition: border-color .2s; }
+    #search-box:focus { border-color: #00b87a; }
+    .table-wrap { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align: right; padding: 10px 14px; font-size: 11px; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: .8px; border-bottom: 1px solid #222; position: sticky; top: 0; background: #0f0f0f; z-index: 1; }
+    tbody tr { border-bottom: 1px solid #191919; transition: background .12s; }
+    tbody tr:hover { background: #161616; }
+    tbody tr.urgent-row { background: #180a0a; }
+    tbody tr.urgent-row:hover { background: #1f0f0f; }
+    td { padding: 13px 14px; vertical-align: top; font-size: 13px; }
+    .col-name { width: 180px; } .col-status { width: 220px; } .col-time { width: 100px; white-space: nowrap; }
+    .lead-name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+    .lead-phone { font-size: 11px; color: #444; margin-top: 2px; direction: ltr; }
+    .last-msg { color: #888; font-size: 12px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .no-msg { color: #2a2a2a; font-size: 12px; font-style: italic; }
+    .badges { display: flex; flex-wrap: wrap; gap: 5px; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+    .badge.needs_human    { background: #2a0a0a; color: #ef4444; border-color: #ef444450; animation: bpulse 2s infinite; }
+    .badge.hot            { background: #1a1200; color: #f59e0b; border-color: #f59e0b50; }
+    .badge.cold           { background: #0a0f1a; color: #3b82f6; border-color: #3b82f650; }
+    .badge.not_interested { background: #1a1a1a; color: #666;    border-color: #33333360; }
+    .badge.human_active   { background: #0d1a12; color: #00b87a; border-color: #00b87a50; }
+    @keyframes bpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+    .time-cell { font-size: 11px; color: #444; }
+    .table-info { padding: 60px 0; text-align: center; color: #2a2a2a; font-size: 13px; }
+    .act-btn { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; border: 1px solid transparent; transition: all .15s; white-space: nowrap; }
+    .act-btn.stop     { background: #2a0a0a; color: #ef4444; border-color: #ef444450; }
+    .act-btn.stop:hover     { background: #3a1010; border-color: #ef4444; }
+    .act-btn.takeover { background: #0d1a12; color: #00b87a; border-color: #00b87a50; }
+    .act-btn.takeover:hover { background: #102015; border-color: #00b87a; }
+    .act-btn.resume   { background: #111a10; color: #a3e635; border-color: #a3e63550; }
+    .act-btn.resume:hover   { background: #1a2a10; border-color: #a3e635; }
+    .act-btn:disabled { opacity: .4; cursor: default; }
+    .act-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+    /* Checkbox column */
+    .col-check { width: 36px; text-align: center; }
+    td.col-check { text-align: center; vertical-align: middle; }
+    input[type=checkbox] { width: 15px; height: 15px; accent-color: #ef4444; cursor: pointer; }
+    /* Delete bar */
+    #delete-bar { display: none; padding: 8px 24px; background: #1a0a0a; border-bottom: 1px solid #3a1010; align-items: center; gap: 10px; flex-shrink: 0; }
+    #delete-bar.visible { display: flex; }
+    #delete-bar span { font-size: 12px; color: #ef4444; font-weight: 600; }
+    #delete-btn { padding: 5px 16px; border-radius: 8px; background: #ef4444; color: #fff; border: none; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    #delete-btn:hover { background: #dc2626; }
+    #deselect-btn { padding: 5px 12px; border-radius: 8px; background: transparent; color: #555; border: 1px solid #333; font-size: 12px; font-family: inherit; cursor: pointer; }
+    #deselect-btn:hover { color: #aaa; border-color: #555; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">RS</div>
+  <div><h1>RootSync Dashboard</h1><div class="sub">آخر رسالة لكل عميل</div></div>
+  <div class="header-right">
+    <div class="stat-chip urgent" id="stat-urgent">⚠️ 0</div>
+    <div class="stat-chip hot"    id="stat-hot">🔥 0</div>
+    <div class="stat-chip cold"   id="stat-cold">❄️ 0</div>
+    <div class="stat-chip total"  id="stat-total">📋 0</div>
+    <div id="sync-dot"></div>
+  </div>
+</header>
+<div id="delete-bar">
+  <span id="delete-count">0 محادثة محددة</span>
+  <button id="delete-btn" onclick="deleteSelected()">🗑️ حذف المحددة</button>
+  <button id="deselect-btn" onclick="clearSelection()">إلغاء التحديد</button>
+</div>
+<div id="filter-bar">
+  <span class="filter-label">فلتر:</span>
+  <button class="fbtn on-all" data-f="all"            onclick="setFilter('all',this)">الكل</button>
+  <button class="fbtn"        data-f="needs_human"    onclick="setFilter('needs_human',this)">⚠️ يحتاج موظف</button>
+  <button class="fbtn"        data-f="hot"            onclick="setFilter('hot',this)">🔥 حار</button>
+  <button class="fbtn"        data-f="cold"           onclick="setFilter('cold',this)">❄️ بارد</button>
+  <button class="fbtn"        data-f="not_interested" onclick="setFilter('not_interested',this)">🚫 غير مهتم</button>
+  <input id="search-box" type="text" placeholder="ابحث باسم أو رقم..." oninput="render()" />
+</div>
+<div class="table-wrap">
+  <table>
+    <thead><tr>
+      <th class="col-check"><input type="checkbox" id="check-all" onchange="toggleAll(this)" title="تحديد الكل" /></th>
+      <th class="col-name">الاسم</th>
+      <th class="col-msg">آخر رسالة</th>
+      <th class="col-status">الحالة</th>
+      <th class="col-time">الوقت</th>
+      <th class="col-action">إجراء</th>
+    </tr></thead>
+    <tbody id="table-body"><tr><td colspan="4" class="table-info">جاري التحميل…</td></tr></tbody>
+  </table>
+</div>
+<script>
+  // If opened from Live Server (port 5500) instead of the Express server, route API to port 3000
+  const API = (location.port === '3000' || location.port === '') ? '' : 'http://localhost:3000';
+
+  let allLeads = [];
+  let activeFilter = 'all';
+  let selectedIds = new Set();
+  load();
+  setInterval(load, 5000);
+
+  async function load() {
+    try {
+      const [leadsRes, statsRes] = await Promise.all([
+        fetch(`${API}/api/leads`).then(r => r.json()),
+        fetch(`${API}/api/stats`).then(r => r.json()),
+      ]);
+      allLeads = leadsRes;
+      updateStats(statsRes);
+      render();
+      document.getElementById('sync-dot').className = 'ok';
+    } catch (e) { document.getElementById('sync-dot').className = 'err'; }
+  }
+
+  function updateStats(s) {
+    document.getElementById('stat-urgent').textContent = `⚠️ ${s.needs_human ?? 0}`;
+    document.getElementById('stat-hot').textContent    = `🔥 ${s.hot ?? 0}`;
+    document.getElementById('stat-cold').textContent   = `❄️ ${s.cold ?? 0}`;
+    document.getElementById('stat-total').textContent  = `📋 ${s.total ?? 0}`;
+  }
+
+  function setFilter(f, btn) {
+    activeFilter = f;
+    const map = { all:'on-all', needs_human:'on-urgent', hot:'on-hot', cold:'on-cold', not_interested:'on-ni' };
+    document.querySelectorAll('.fbtn').forEach(b => {
+      b.className = 'fbtn' + (b.dataset.f === f ? ' ' + (map[f] || '') : '');
+    });
+    render();
+  }
+
+  function render() {
+    const q = document.getElementById('search-box').value.trim().toLowerCase();
+    const rows = allLeads.filter(l => {
+      if (activeFilter === 'needs_human'    && l.workflow_status  !== 'needs_human')     return false;
+      if (activeFilter === 'hot'            && l.lead_temperature !== 'hot')             return false;
+      if (activeFilter === 'cold'           && l.lead_temperature !== 'cold')            return false;
+      if (activeFilter === 'not_interested' && l.lead_temperature !== 'not_interested')  return false;
+      if (q) { const h = ((l.name || '') + ' ' + (l.phone || '')).toLowerCase(); if (!h.includes(q)) return false; }
+      return true;
+    });
+    const tbody = document.getElementById('table-body');
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="table-info">لا يوجد عملاء في هذه الفئة</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(l => {
+      const ws     = l.workflow_status || 'new';
+      const urgent = ws === 'needs_human';
+      const human  = ws === 'human_active';
+      const temp   = l.lead_temperature || 'cold';
+      const badges = [];
+      if (urgent) badges.push({ cls: 'needs_human',    label: '⚠️ يحتاج موظف' });
+      if (human)  badges.push({ cls: 'human_active',   label: '👤 يتولىها موظف' });
+      if (temp === 'hot')            badges.push({ cls: 'hot',            label: '🔥 حار' });
+      if (temp === 'cold')           badges.push({ cls: 'cold',           label: '❄️ بارد' });
+      if (temp === 'not_interested') badges.push({ cls: 'not_interested', label: '🚫 غير مهتم' });
+      if (!badges.length)            badges.push({ cls: 'cold',           label: '❄️ بارد' });
+      const badgeHtml = badges.map(b => `<span class="badge ${b.cls}">${b.label}</span>`).join('');
+      const lastMsg = l.last_message
+        ? `<div class="last-msg">${esc(l.last_message)}</div>`
+        : `<div class="no-msg">لا توجد رسائل</div>`;
+
+      // Action buttons depend on state:
+      // AI running  → [✋ أوقف الذكاء]
+      // needs_human → [👤 أنا أتولى]  [▶ استأنف الذكاء]
+      // human_active → [▶ استأنف الذكاء]
+      let actionHtml;
+      if (urgent) {
+        actionHtml = `
+          <div class="act-btns">
+            <button class="act-btn takeover" onclick="setAgentStatus('${l.id}','human_active',this)">👤 أنا أتولى</button>
+            <button class="act-btn resume"   onclick="setAgentStatus('${l.id}','new',this)">▶ استأنف الذكاء</button>
+          </div>`;
+      } else if (human) {
+        actionHtml = `<button class="act-btn resume" onclick="setAgentStatus('${l.id}','new',this)">▶ استأنف الذكاء</button>`;
+      } else {
+        actionHtml = `<button class="act-btn stop" onclick="setAgentStatus('${l.id}','needs_human',this)">✋ أوقف الذكاء</button>`;
+      }
+
+      const checked = selectedIds.has(l.id) ? 'checked' : '';
+      return `<tr class="${urgent ? 'urgent-row' : ''}" id="row-${l.id}">
+        <td class="col-check"><input type="checkbox" ${checked} onchange="toggleSelect('${l.id}',this)" /></td>
+        <td class="col-name"><div class="lead-name">${esc(l.name || '—')}</div><div class="lead-phone">${esc(l.phone || '')}</div></td>
+        <td class="col-msg">${lastMsg}</td>
+        <td class="col-status"><div class="badges">${badgeHtml}</div></td>
+        <td class="col-time"><div class="time-cell">${timeAgo(l.last_message_at)}</div></td>
+        <td class="col-action">${actionHtml}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function timeAgo(iso) {
+    if (!iso) return '—';
+    const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+    if (diff < 60)    return 'الآن';
+    if (diff < 3600)  return `${Math.floor(diff / 60)} د`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} س`;
+    return new Date(iso).toLocaleDateString('ar-JO');
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function toggleSelect(id, chk) {
+    if (chk.checked) selectedIds.add(id); else selectedIds.delete(id);
+    updateDeleteBar();
+  }
+
+  function toggleAll(chk) {
+    const boxes = document.querySelectorAll('#table-body input[type=checkbox]');
+    boxes.forEach(b => {
+      const rowId = b.closest('tr').id.replace('row-', '');
+      b.checked = chk.checked;
+      if (chk.checked) selectedIds.add(rowId); else selectedIds.delete(rowId);
+    });
+    updateDeleteBar();
+  }
+
+  function clearSelection() {
+    selectedIds.clear();
+    document.querySelectorAll('#table-body input[type=checkbox]').forEach(b => b.checked = false);
+    const ca = document.getElementById('check-all'); if (ca) ca.checked = false;
+    updateDeleteBar();
+  }
+
+  function updateDeleteBar() {
+    const bar = document.getElementById('delete-bar');
+    const n = selectedIds.size;
+    if (n > 0) {
+      bar.classList.add('visible');
+      document.getElementById('delete-count').textContent = `${n} محادثة محددة`;
+    } else {
+      bar.classList.remove('visible');
+    }
+  }
+
+  async function deleteSelected() {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    if (!confirm(`حذف ${ids.length} عميل بشكل نهائي؟`)) return;
+    const btn = document.getElementById('delete-btn');
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API}/api/leads`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      allLeads = allLeads.filter(l => !selectedIds.has(l.id));
+      selectedIds.clear();
+      updateDeleteBar();
+      render();
+    } catch (e) {
+      console.error('Delete failed:', e);
+      alert('حدث خطأ أثناء الحذف');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function setAgentStatus(leadId, status, btn) {
+    btn.disabled = true;
+    try {
+      const res = await fetch(`${API}/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workflow_status: status })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      // Update local cache and re-render immediately
+      const idx = allLeads.findIndex(l => l.id === leadId);
+      if (idx !== -1) { allLeads[idx].workflow_status = status; render(); }
+    } catch (e) {
+      console.error('setAgentStatus failed:', e);
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>

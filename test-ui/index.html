@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RootSync — Bot Test</title>
+  <title>RootSync</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -20,28 +20,52 @@
     header {
       background: #1a1a1a;
       border-bottom: 1px solid #2a2a2a;
-      padding: 14px 20px;
+      padding: 0 20px;
       display: flex;
-      align-items: center;
-      gap: 12px;
+      align-items: stretch;
+      gap: 0;
+      flex-shrink: 0;
+    }
+    .header-brand {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px 12px 0; border-right: 1px solid #2a2a2a; margin-right: 4px;
     }
     header .logo {
       width: 36px; height: 36px;
       background: linear-gradient(135deg, #00b87a, #00d4ff);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 14px; color: #000;
+      font-weight: bold; font-size: 14px; color: #000; flex-shrink: 0;
     }
     header h1 { font-size: 17px; font-weight: 600; }
     header .subtitle { font-size: 12px; color: #888; margin-top: 2px; }
-    header .status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #555; margin-right: auto; margin-left: 0;
-      transition: background 0.3s;
-    }
-    header .status-dot.online { background: #00b87a; box-shadow: 0 0 6px #00b87a; }
 
-    /* ─── Config Panel ─────────────────────────────────────── */
+    /* ─── Nav Tabs ─────────────────────────────────────────── */
+    .nav-tabs { display: flex; align-items: stretch; gap: 2px; padding: 0 8px; }
+    .nav-tab {
+      display: flex; align-items: center; gap: 7px;
+      padding: 0 18px; font-size: 13px; font-weight: 500; color: #666;
+      cursor: pointer; border-bottom: 3px solid transparent;
+      transition: color .2s, border-color .2s; user-select: none;
+      background: none; border-top: none; border-left: none; border-right: none;
+      font-family: inherit;
+    }
+    .nav-tab:hover { color: #aaa; }
+    .nav-tab.active-chat  { color: #00b87a; border-bottom-color: #00b87a; }
+    .nav-tab.active-social { color: #e1306c; border-bottom-color: #e1306c; }
+
+    /* status dot — chat tab only */
+    header .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #555; transition: background 0.3s; flex-shrink: 0;
+    }
+    header .status-dot.online { background: #00b87a; box-shadow: 0 0 5px #00b87a; }
+
+    /* ─── Tab panels ───────────────────────────────────────── */
+    .tab-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .tab-panel.active { display: flex; }
+
+    /* ─── Config Panel (chat) ──────────────────────────────── */
     #config-panel {
       background: #161616;
       border-bottom: 1px solid #2a2a2a;
@@ -50,6 +74,7 @@
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
     #config-panel label { font-size: 12px; color: #888; white-space: nowrap; }
     #config-panel input {
@@ -238,18 +263,128 @@
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+    /* ══════════════════════════════════════════════════════════
+       SOCIAL TAB STYLES
+    ══════════════════════════════════════════════════════════ */
+    #tab-social {
+      overflow-y: auto;
+    }
+    .soc-container {
+      max-width: 560px; width: 100%;
+      margin: 32px auto; padding: 0 20px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .soc-card {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 24px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .soc-card h2 { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+    .soc-label { font-size: 12px; color: #888; display: block; margin-bottom: 5px; }
+    .soc-textarea {
+      background: #222; border: 1px solid #333; border-radius: 8px; color: #eee;
+      padding: 10px 12px; font-size: 14px; font-family: inherit; width: 100%;
+      resize: vertical; min-height: 72px; transition: border-color .2s;
+    }
+    .soc-textarea:focus { outline: none; border-color: #e1306c; }
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed #333; border-radius: 10px; padding: 36px 20px;
+      text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+    }
+    #drop-zone:hover, #drop-zone.over { border-color: #e1306c; background: #e1306c0a; }
+    #drop-zone.has-file { border-color: #00b87a; background: #00b87a08; }
+    #drop-zone .dz-icon { font-size: 34px; margin-bottom: 8px; }
+    #drop-zone .dz-hint { font-size: 13px; color: #666; }
+    #drop-zone .dz-hint span { color: #e1306c; text-decoration: underline; }
+    #file-input { display: none; }
+    /* File preview */
+    #file-preview {
+      display: none; align-items: center; gap: 12px;
+      background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px;
+    }
+    #file-preview.show { display: flex; }
+    #prev-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; display: none; }
+    #prev-thumb.show { display: block; }
+    #prev-vid { width: 50px; height: 50px; background: #222; border-radius: 6px; display: none; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    #prev-vid.show { display: flex; }
+    .prev-info { flex: 1; overflow: hidden; }
+    .prev-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .prev-size { font-size: 11px; color: #666; margin-top: 2px; }
+    #remove-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 18px; border-radius: 4px; padding: 4px; transition: color .2s; }
+    #remove-btn:hover { color: #ef4444; }
+    /* Platforms */
+    .platforms { display: flex; gap: 10px; flex-wrap: wrap; }
+    .plat {
+      display: flex; align-items: center; gap: 6px; background: #222;
+      border: 1px solid #333; border-radius: 8px; color: #aaa;
+      padding: 8px 14px; font-size: 13px; cursor: pointer; transition: all .2s; user-select: none;
+    }
+    .plat.on { border-color: #e1306c; color: #e1306c; background: #e1306c18; }
+    .plat .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+    .plat.on .dot { background: #e1306c; box-shadow: 0 0 5px #e1306c; }
+    /* Progress */
+    #prog-wrap { display: none; background: #222; border-radius: 6px; height: 6px; overflow: hidden; }
+    #prog-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #e1306c, #f77737); transition: width .2s; border-radius: 6px; }
+    /* Submit */
+    #submit-btn {
+      background: linear-gradient(135deg, #e1306c, #f77737); border: none; border-radius: 8px;
+      color: #fff; font-size: 15px; font-weight: 600; padding: 12px; cursor: pointer; width: 100%; transition: opacity .2s;
+    }
+    #submit-btn:hover { opacity: .88; }
+    #submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+    /* Status card */
+    #status-card {
+      display: none; background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 20px; flex-direction: column; gap: 14px;
+    }
+    #status-card.show { display: flex; }
+    #status-card h2 { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+    .status-row { display: flex; align-items: center; gap: 10px; }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    }
+    .status-badge.pending   { background: #78350f22; border: 1px solid #92400e; color: #fbbf24; }
+    .status-badge.success   { background: #052e1622; border: 1px solid #065f46; color: #34d399; }
+    .status-badge.error     { background: #450a0a22; border: 1px solid #7f1d1d; color: #f87171; }
+    .status-badge.processing{ background: #1e1b4b22; border: 1px solid #3730a3; color: #a5b4fc; }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; animation: pulse 1.2s infinite; }
+    .pulse.yellow { background: #fbbf24; }
+    .pulse.blue   { background: #a5b4fc; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    #status-detail { font-size: 12px; font-family: monospace; color: #666; line-height: 1.6; word-break: break-all; }
+    #request-id-row { font-size: 11px; color: #444; font-family: monospace; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff4; border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">RS</div>
-  <div>
-    <div>RootSync Bot</div>
-    <div class="subtitle">واجهة اختبار — بدون واتساب</div>
+  <div class="header-brand">
+    <div class="logo">RS</div>
+    <div>
+      <h1>RootSync</h1>
+      <div class="subtitle">Intelligence Dashboard</div>
+    </div>
   </div>
-  <div class="status-dot" id="status-dot"></div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active-chat" id="tab-btn-chat" onclick="switchTab('chat')">
+      <div class="status-dot" id="status-dot"></div>
+      🤖 Bot Chat
+    </button>
+    <button class="nav-tab" id="tab-btn-social" onclick="switchTab('social')">
+      📸 Social Post
+    </button>
+  </nav>
 </header>
+
+<!-- ═══════════════════════════════════════════════
+     TAB: CHAT
+═══════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-chat" dir="rtl">
 
 <div id="config-panel">
   <label>Webhook URL:</label>
@@ -300,7 +435,79 @@
   </div>
 </div>
 
+</div><!-- end #tab-chat -->
+
+<!-- ═══════════════════════════════════════════════
+     TAB: SOCIAL POST
+═══════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-social">
+  <div class="soc-container">
+    <div class="soc-card">
+      <h2>New Post</h2>
+
+      <!-- Drop zone -->
+      <div>
+        <span class="soc-label">Media File (video or image)</span>
+        <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <div class="dz-icon">🎬</div>
+          <div class="dz-hint">Drag &amp; drop here, or <span>browse</span></div>
+          <input type="file" id="file-input" accept="video/*,image/*" />
+        </div>
+        <div id="file-preview">
+          <img id="prev-thumb" alt="" />
+          <div id="prev-vid">🎬</div>
+          <div class="prev-info">
+            <div class="prev-name" id="prev-name"></div>
+            <div class="prev-size" id="prev-size"></div>
+          </div>
+          <button id="remove-btn" onclick="clearFile()">✕</button>
+        </div>
+      </div>
+
+      <!-- Caption -->
+      <div>
+        <span class="soc-label">Caption</span>
+        <textarea class="soc-textarea" id="soc-title" placeholder="Write your caption here…"></textarea>
+      </div>
+
+      <!-- Platforms -->
+      <div>
+        <span class="soc-label">Platforms</span>
+        <div class="platforms">
+          <div class="plat on" data-p="instagram"><span class="dot"></span> Instagram</div>
+          <div class="plat"    data-p="tiktok">   <span class="dot"></span> TikTok</div>
+          <div class="plat"    data-p="facebook"> <span class="dot"></span> Facebook</div>
+        </div>
+      </div>
+
+      <div id="prog-wrap"><div id="prog-bar"></div></div>
+      <button id="submit-btn" onclick="submitPost()">Post Now</button>
+    </div>
+
+    <!-- Status card -->
+    <div id="status-card">
+      <h2>Upload Status</h2>
+      <div class="status-row">
+        <span id="status-badge" class="status-badge pending"><span class="pulse yellow"></span> Pending</span>
+      </div>
+      <div id="request-id-row"></div>
+      <div id="status-detail">Waiting for update…</div>
+    </div>
+  </div>
+</div><!-- end #tab-social -->
+
 <script>
+  // ─── Tab switching ──────────────────────────────────────────
+  function switchTab(tab) {
+    document.getElementById('tab-chat').classList.toggle('active', tab === 'chat');
+    document.getElementById('tab-social').classList.toggle('active', tab === 'social');
+    document.getElementById('tab-btn-chat').className   = 'nav-tab' + (tab === 'chat'   ? ' active-chat'   : '');
+    document.getElementById('tab-btn-social').className = 'nav-tab' + (tab === 'social' ? ' active-social' : '');
+  }
+
+  // ══════════════════════════════════════════════════
+  // CHAT TAB JS
+  // ══════════════════════════════════════════════════
   const messagesEl  = document.getElementById('messages');
   const inputEl     = document.getElementById('msg-input');
   const sendBtn     = document.getElementById('send-btn');
@@ -383,15 +590,17 @@
         appendMessage('bot', `⚠️ خطأ من الـ webhook (${res.status}): ${rawText.slice(0, 200)}`, null, true);
       } else {
         let data = {};
-        try { data = rawText ? JSON.parse(rawText) : {}; } catch(e) { data = { reply: rawText || 'استجابة غير متوقعة من الـ AI.' }; }
-        const reply = data.reply || 'لم يرجع الـ AI رداً.';
-        appendMessage('bot', reply, data.classification, data.needs_human);
+        try { data = rawText ? JSON.parse(rawText) : {}; } catch(e) { data = { reply: rawText || '' }; }
+        // If handoff — no message to customer, agent will reply directly
+        if (data.reply) {
+          appendMessage('bot', data.reply, data.classification, data.needs_human);
+        }
         updateDebugPanel(data);
         statusDot.classList.add('online');
       }
     } catch (err) {
       removeTyping(typingId);
-      appendMessage('bot', `⚠️ تعذّر الاتصال بـ n8n: ${err.message}`, null, true);
+      appendMessage('bot', `⚠️ تعذّر الاتصال بالخادم: ${err.message}`, null, true);
       statusDot.classList.remove('online');
     }
 
@@ -448,10 +657,11 @@
 
   function updateDebugPanel(data) {
     const c = data.classification || {};
-    const statusClass = {
-      hot_lead: 'hot', warm_lead: 'warm', cold_lead: 'cold',
-      needs_human: 'human', new: 'new_s'
-    }[c.lead_status] || '';
+    const tempClass = {
+      hot: 'hot', cold: 'cold',
+      not_interested: 'cold', unknown: 'new_s'
+    }[c.lead_temperature] || '';
+    const statusClass = c.workflow_status === 'needs_human' ? 'human' : '';
 
     debugEl.innerHTML = `
       <div class="field">
@@ -459,20 +669,24 @@
         <div class="value" style="font-size:10px;word-break:break-all">${data.lead_id || '—'}</div>
       </div>
       <div class="field">
-        <div class="label">Lead Status</div>
-        <div class="value ${statusClass}">${c.lead_status || '—'}</div>
+        <div class="label">Lead Temperature</div>
+        <div class="value ${tempClass}">${c.lead_temperature || '—'}</div>
       </div>
       <div class="field">
-        <div class="label">Intent</div>
-        <div class="value">${c.intent || '—'}</div>
+        <div class="label">Workflow Status</div>
+        <div class="value ${statusClass}">${c.workflow_status || '—'}</div>
+      </div>
+      <div class="field">
+        <div class="label">Service Interest</div>
+        <div class="value">${c.service_interest || '—'}</div>
       </div>
       <div class="field">
         <div class="label">Health Topic</div>
         <div class="value">${c.health_topic || '—'}</div>
       </div>
       <div class="field">
-        <div class="label">Suggested Path</div>
-        <div class="value">${c.suggested_path || '—'}</div>
+        <div class="label">Urgency</div>
+        <div class="value">${c.urgency || '—'}</div>
       </div>
       <div class="field">
         <div class="label">Confidence</div>
@@ -499,6 +713,148 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/\n/g, '<br>');
+  }
+
+  // ══════════════════════════════════════════════════
+  // SOCIAL TAB JS
+  // ══════════════════════════════════════════════════
+  let selectedFile = null;
+  let pollTimer = null;
+
+  // Platform toggles
+  document.querySelectorAll('.plat').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
+
+  // File input
+  document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+  // Drag & drop
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    zone.classList.add('has-file');
+    zone.querySelector('.dz-icon').textContent = '✓';
+    zone.querySelector('.dz-hint').textContent = f.name;
+    document.getElementById('prev-name').textContent = f.name;
+    document.getElementById('prev-size').textContent = fmtBytes(f.size);
+    const thumb = document.getElementById('prev-thumb');
+    const vid   = document.getElementById('prev-vid');
+    if (f.type.startsWith('image/')) {
+      thumb.src = URL.createObjectURL(f); thumb.classList.add('show'); vid.classList.remove('show');
+    } else {
+      thumb.classList.remove('show'); vid.classList.add('show');
+    }
+    document.getElementById('file-preview').classList.add('show');
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    document.getElementById('file-input').value = '';
+    zone.classList.remove('has-file');
+    zone.querySelector('.dz-icon').textContent = '🎬';
+    zone.querySelector('.dz-hint').innerHTML = 'Drag &amp; drop here, or <span>browse</span>';
+    document.getElementById('file-preview').classList.remove('show');
+    document.getElementById('prev-thumb').classList.remove('show');
+    document.getElementById('prev-vid').classList.remove('show');
+  }
+
+  function fmtBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  async function submitPost() {
+    const title = document.getElementById('soc-title').value.trim();
+    const platforms = [...document.querySelectorAll('.plat.on')].map(b => b.dataset.p);
+    if (!selectedFile)     return alert('Please select a file.');
+    if (!title)            return alert('Please enter a caption.');
+    if (!platforms.length) return alert('Select at least one platform.');
+
+    const btn = document.getElementById('submit-btn');
+    const pw  = document.getElementById('prog-wrap');
+    const pb  = document.getElementById('prog-bar');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Uploading…';
+    pw.style.display = 'block'; pb.style.width = '0%';
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+    fd.append('title', title);
+    fd.append('platforms', JSON.stringify(platforms));
+
+    try {
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/social/post');
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable) pb.style.width = Math.round(e.loaded / e.total * 85) + '%';
+        });
+        xhr.onload = () => {
+          pb.style.width = '100%';
+          try { resolve({ status: xhr.status, body: JSON.parse(xhr.responseText) }); }
+          catch { reject(new Error('Invalid server response')); }
+        };
+        xhr.onerror = () => reject(new Error('Network error — is the server running?'));
+        xhr.send(fd);
+      });
+      if (data.status !== 200) throw new Error(data.body.error || `Server error ${data.status}`);
+      const requestId = data.body.result?.request_id;
+      showStatusCard(requestId);
+      if (requestId) startPolling(requestId);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Post Now';
+      setTimeout(() => { pw.style.display = 'none'; pb.style.width = '0%'; }, 1000);
+    }
+  }
+
+  function showStatusCard(requestId) {
+    const card = document.getElementById('status-card');
+    card.classList.add('show');
+    document.getElementById('request-id-row').textContent = requestId ? 'Request ID: ' + requestId : '';
+    setSocStatus('processing', '⏳ Processing…');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function setSocStatus(type, label, detail) {
+    const badge = document.getElementById('status-badge');
+    badge.className = 'status-badge ' + type;
+    const icons = { pending: '<span class="pulse yellow"></span>', processing: '<span class="pulse blue"></span>', success: '✓', error: '✗' };
+    badge.innerHTML = (icons[type] || '') + ' ' + label;
+    if (detail !== undefined) document.getElementById('status-detail').textContent = detail;
+  }
+
+  function startPolling(requestId) {
+    if (pollTimer) clearInterval(pollTimer);
+    let attempts = 0;
+    pollTimer = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch('/api/social/status?request_id=' + encodeURIComponent(requestId));
+        const data = await res.json();
+        const overallStatus = data.status || data.overall_status || '';
+        const detail = JSON.stringify(data, null, 2);
+        if (/success|complete|done/i.test(overallStatus)) {
+          setSocStatus('success', 'Posted successfully!', detail); clearInterval(pollTimer);
+        } else if (/fail|error/i.test(overallStatus)) {
+          setSocStatus('error', 'Upload failed', detail); clearInterval(pollTimer);
+        } else {
+          setSocStatus('processing', overallStatus || 'Processing…', detail);
+        }
+      } catch (e) {
+        document.getElementById('status-detail').textContent = 'Status check failed: ' + e.message;
+      }
+      if (attempts >= 40) { clearInterval(pollTimer); setSocStatus('error', 'Timed out — check upload-post.com dashboard', ''); }
+    }, 3000);
   }
 </script>
 </body>
