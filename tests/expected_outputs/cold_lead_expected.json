@@ -1,5 +1,6 @@
 {
-  "lead_status": "cold_lead",
+  "lead_temperature": "cold",
+  "workflow_status": "new",
   "tags": ["program_interest"],
   "health_topic": "general",
   "service_interest": "treatment_program",

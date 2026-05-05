@@ -114,67 +114,11 @@ WEBHOOK_VERIFY_TOKEN=<your chosen verify token>
 
 ---
 
-## Integration 2 — Claude API (Anthropic)
+## Integration 2 — OpenAI API (Classification, Reply & Embeddings)
 
 ### Why
 
-Claude is the primary LLM for lead classification and reply generation. It produces reliable, structured JSON output in Arabic.
-
-### Setup Steps
-
-1. Go to [https://console.anthropic.com](https://console.anthropic.com)
-2. Create an account or sign in
-3. Go to **API Keys** → Create a new key
-4. Copy the key → save as `CLAUDE_API_KEY` in `.env`
-
-### Recommended Model
-
-`claude-3-5-haiku-20241022` — fast, cost-effective, strong JSON output, supports Arabic well.
-
-For highest accuracy (at higher cost): `claude-opus-4-5` or `claude-sonnet-4-5`.
-
-### Configuration in Code
-
-The OpenAI SDK supports Claude-compatible APIs, or use `axios`/`node-fetch` directly:
-
-```js
-const response = await fetch('https://api.anthropic.com/v1/messages', {
-  method: 'POST',
-  headers: {
-    'x-api-key': process.env.CLAUDE_API_KEY,
-    'anthropic-version': '2023-06-01',
-    'content-type': 'application/json'
-  },
-  body: JSON.stringify({ model: 'claude-3-5-haiku-20241022', max_tokens: 600, messages: [...] })
-});
-```
-
-Add to `.env`: `CLAUDE_API_KEY=<your key>`
-
-### Test Request Body
-
-```json
-{
-  "model": "claude-3-5-haiku-20241022",
-  "max_tokens": 500,
-  "messages": [
-    {
-      "role": "user",
-      "content": "رد بـ JSON فقط: {\"status\": \"ok\"}"
-    }
-  ]
-}
-```
-
-Expected: valid JSON response with `status: ok` inside `content[0].text`.
-
----
-
-## Integration 3 — OpenAI API (Alternative / Embeddings)
-
-### Why
-
-OpenAI is used as a fallback LLM and as the primary embeddings provider (`text-embedding-3-small`).
+OpenAI is the primary LLM for lead classification, reply generation, and weekly insights. It also provides the embeddings pipeline.
 
 ### Setup Steps
 
@@ -186,29 +130,42 @@ OpenAI is used as a fallback LLM and as the primary embeddings provider (`text-e
 
 | Use Case | Model |
 |---|---|
-| Classification / Reply (fallback) | `gpt-4o-mini` |
+| Classification | `gpt-4o-mini` |
+| Reply generation | `gpt-4o-mini` |
+| Weekly insights | `gpt-4o-mini` |
 | Embeddings | `text-embedding-3-small` (1536 dimensions) |
 
 ### Configuration in Code
 
-```
-npm install openai
+The `src/lib/openai.js` singleton (created in Phase 0) handles this. Use the OpenAI SDK for all calls:
+
+```js
+const openai = require('../lib/openai');
+
+const res = await openai.chat.completions.create({
+  model: 'gpt-4o-mini',
+  max_tokens: 600,
+  messages: [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: userMessage }
+  ]
+});
+const text = res.choices[0].message.content;
 ```
 
 Add to `.env`: `OPENAI_API_KEY=<your key>`
 
-The `src/lib/openai.js` singleton (Phase 0) handles this.
+### Test Request
 
-### Test Embedding Call
-
-```json
-{
-  "model": "text-embedding-3-small",
-  "input": "مرحبا بدي أحجز استشارة"
-}
+```js
+const res = await openai.chat.completions.create({
+  model: 'gpt-4o-mini',
+  max_tokens: 50,
+  messages: [{ role: 'user', content: 'رد بـ JSON فقط: {"status": "ok"}' }]
+});
+console.log(res.choices[0].message.content);
+// Expected: {"status": "ok"}
 ```
-
-Expected: array of 1536 floats in `data[0].embedding`.
 
 ---
 

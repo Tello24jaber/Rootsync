@@ -29,7 +29,9 @@ src/
 
 ```js
 const supabase = require('../lib/supabase');
+const openai = require('../lib/openai');
 const { sendHandoff } = require('./handoff');
+const { sendWhatsAppMessage } = require('./whatsapp');
 const fs = require('fs');
 const path = require('path');
 
@@ -37,27 +39,16 @@ const SYSTEM_PROMPT = fs.readFileSync(
   path.join(__dirname, '../../prompts/reply_prompt.md'), 'utf8'
 );
 
-async function callClaudeReply({ message_text, lead_status, service_interest, health_topic, sentiment }) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': process.env.CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 400,
-      system: SYSTEM_PROMPT,
-      messages: [{
-        role: 'user',
-        content: `رسالة العميل:\n${message_text}\n\nتصنيف الرسالة:\n- الحالة: ${lead_status}\n- الاهتمام بالخدمة: ${service_interest}\n- الموضوع الصحي: ${health_topic}\n- الطابع: ${sentiment}\n\nأرجع JSON فقط.`
-      }]
-    })
+async function callOpenAIReply({ message_text, lead_status, service_interest, health_topic, sentiment }) {
+  const res = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    max_tokens: 400,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `رسالة العميل:\n${message_text}\n\nتصنيف الرسالة:\n- الحالة: ${lead_status}\n- الاهتمام بالخدمة: ${service_interest}\n- الموضوع الصحي: ${health_topic}\n- الطابع: ${sentiment}\n\nأرجع JSON فقط.` }
+    ]
   });
-  if (!res.ok) throw new Error(`Claude reply error: ${res.status}`);
-  const data = await res.json();
-  return data.content[0].text;
+  return res.choices[0].message.content;
 }
 
 function parseReply(raw) {
@@ -82,27 +73,6 @@ function parseReply(raw) {
   }
 }
 
-async function sendWhatsAppMessage(to, text) {
-  const res = await fetch(
-    `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to,
-        type: 'text',
-        text: { body: text }
-      })
-    }
-  );
-  if (!res.ok) throw new Error(`WhatsApp send error: ${res.status}`);
-  return res.json();
-}
-
 async function sendReply(context) {
   const {
     lead_id, message_id, conversation_id,
@@ -113,7 +83,7 @@ async function sendReply(context) {
 
   let reply;
   try {
-    const raw = await callClaudeReply({ message_text, lead_status, service_interest, health_topic, sentiment });
+    const raw = await callOpenAIReply({ message_text, lead_status, service_interest, health_topic, sentiment });
     reply = parseReply(raw);
   } catch (err) {
     console.error('Reply generation failed:', err);
@@ -132,7 +102,7 @@ async function sendReply(context) {
     });
   }
 
-  // Store outbound message before sending
+  // Store outbound message before sending (send_status: pending)
   const { data: outboundMsg, error } = await supabase.from('messages').insert({
     lead_id,
     conversation_id,
@@ -141,21 +111,34 @@ async function sendReply(context) {
     message_type: 'text',
     text: reply.reply_text,
     responder_type: 'ai',
-    reply_type: reply.reply_type
+    reply_type: reply.reply_type,
+    send_status: 'pending'
   }).select('id').single();
 
   if (error) throw error;
 
   // Send to WhatsApp
-  const waSent = await sendWhatsAppMessage(customer_phone, reply.reply_text);
-  const whatsappMsgId = waSent?.messages?.[0]?.id;
-
-  // Update message with platform_message_id
-  if (whatsappMsgId) {
-    await supabase.from('messages')
-      .update({ platform_message_id: whatsappMsgId })
-      .eq('id', outboundMsg.id);
+  let whatsappMsgId = null;
+  let sendStatus = 'failed';
+  let sendError = null;
+  try {
+    const waSent = await sendWhatsAppMessage(customer_phone, reply.reply_text);
+    whatsappMsgId = waSent?.messages?.[0]?.id;
+    sendStatus = 'sent';
+  } catch (err) {
+    console.error('WhatsApp send failed:', err);
+    sendError = err.message;
   }
+
+  // Update message with send result
+  await supabase.from('messages')
+    .update({
+      platform_message_id: whatsappMsgId,
+      send_status: sendStatus,
+      send_error: sendError,
+      sent_at: sendStatus === 'sent' ? new Date().toISOString() : null
+    })
+    .eq('id', outboundMsg.id);
 
   // Update lead last_reply_at
   await supabase.from('leads').update({
@@ -194,7 +177,7 @@ Expected: AI reply sent to customer WhatsApp, outbound message stored in `messag
 ## Checklist
 
 - [ ] `src/services/reply.js` created
-- [ ] Claude reply call working
+- [ ] OpenAI reply call working
 - [ ] Parse fallback routes to handoff correctly
 - [ ] Outbound message stored before WhatsApp send
 - [ ] `platform_message_id` saved after send

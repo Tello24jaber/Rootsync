@@ -2,12 +2,12 @@
 
 ## Goal
 
-Build a scheduled cron job that runs every Sunday at 9 AM. Aggregate the last 7 days of data from Supabase, send samples to Claude for qualitative analysis, generate a full Arabic weekly report, store it, and deliver it to management.
+Build a scheduled cron job that runs every Sunday at 9 AM Jordan time. Aggregate the last 7 days of data from Supabase using direct queries (no RPC), pass samples to OpenAI for qualitative analysis, generate a full Arabic weekly report, store it, and deliver it to management.
 
 ## Exit Criteria
 
 - [ ] Cron fires correctly every Sunday at 9 AM Jordan time
-- [ ] All numeric aggregations are accurate (from DB, not invented by AI)
+- [ ] All numeric aggregations are accurate (direct DB queries, not invented by AI)
 - [ ] AI generates meaningful Arabic text for qualitative sections only
 - [ ] Report is stored in `weekly_insights` table
 - [ ] Report is delivered to management (WhatsApp or email)
@@ -36,36 +36,49 @@ npm install node-cron
 
 ```js
 const supabase = require('../lib/supabase');
+const openai = require('../lib/openai');
 const cron = require('node-cron');
+const { sendWhatsAppMessage } = require('./whatsapp');
 
 async function getWeekStats(weekStart, weekEnd) {
-  const [messages, leadStatuses, topics] = await Promise.all([
-    supabase.rpc('weekly_message_stats', { week_start: weekStart, week_end: weekEnd }),
-    supabase.from('leads')
-      .select('lead_status')
+  // Direct queries — no supabase.rpc needed
+  const [messagesRes, leadsRes, topicsRes] = await Promise.all([
+    supabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
       .gte('created_at', weekStart)
       .lte('created_at', weekEnd),
-    supabase.from('message_topics')
+    supabase
+      .from('leads')
+      .select('lead_temperature, workflow_status')
+      .gte('created_at', weekStart)
+      .lte('created_at', weekEnd),
+    supabase
+      .from('message_topics')
       .select('topic')
       .gte('created_at', weekStart)
       .lte('created_at', weekEnd)
   ]);
 
-  // Count lead statuses
-  const statusCounts = {};
-  for (const l of (leadStatuses.data || [])) {
-    statusCounts[l.lead_status] = (statusCounts[l.lead_status] || 0) + 1;
-  }
+  const totalMessages = messagesRes.count || 0;
+  const leads = leadsRes.data || [];
+
+  // Count by lead_temperature
+  const hot_leads = leads.filter(l => l.lead_temperature === 'hot').length;
+  const cold_leads = leads.filter(l => l.lead_temperature === 'cold').length;
+  const not_interested = leads.filter(l => l.lead_temperature === 'not_interested').length;
+  const needs_human = leads.filter(l => l.workflow_status === 'needs_human').length;
+  const new_leads = leads.length;
 
   // Top topics
   const topicCounts = {};
-  for (const t of (topics.data || [])) {
+  for (const t of (topicsRes.data || [])) {
     topicCounts[t.topic] = (topicCounts[t.topic] || 0) + 1;
   }
   const topTopics = Object.entries(topicCounts)
     .sort((a, b) => b[1] - a[1]).slice(0, 10);
 
-  return { messages: messages.data, statusCounts, topTopics };
+  return { totalMessages, new_leads, hot_leads, cold_leads, not_interested, needs_human, topTopics };
 }
 
 async function getSampleMessages(weekStart, weekEnd) {
@@ -82,7 +95,7 @@ async function getSampleMessages(weekStart, weekEnd) {
   return (data || []).map(m => m.text);
 }
 
-async function callClaudeInsights(stats, sampleMessages) {
+async function callOpenAIInsights(stats, sampleMessages) {
   const prompt = `أنت محلل بيانات. فيما يلي إحصائيات أسبوعية لمنصة رعاية صحية:
 
 الإحصائيات:
@@ -99,22 +112,12 @@ ${sampleMessages.slice(0, 20).join('\n---\n')}
 
 الأرقام مقدمة لك — لا تخترع أرقاماً. ركز على التحليل النوعي فقط.`;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': process.env.CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }]
-    })
+  const res = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: prompt }]
   });
-  if (!res.ok) throw new Error(`Claude insights error: ${res.status}`);
-  const data = await res.json();
-  return data.content[0].text;
+  return res.choices[0].message.content;
 }
 
 async function generateWeeklyInsights() {
@@ -129,39 +132,33 @@ async function generateWeeklyInsights() {
     getSampleMessages(weekStart, weekEnd)
   ]);
 
-  const reportText = await callClaudeInsights(stats, sampleMessages);
+  const reportText = await callOpenAIInsights(stats, sampleMessages);
 
   // Store in weekly_insights table
   await supabase.from('weekly_insights').insert({
     week_start: weekStart,
     week_end: weekEnd,
+    total_messages: stats.totalMessages,
+    new_leads: stats.new_leads,
+    hot_leads: stats.hot_leads,
+    cold_leads: stats.cold_leads,
+    not_interested: stats.not_interested,
+    needs_human: stats.needs_human,
     stats_json: stats,
     report_text: reportText,
     generated_at: now.toISOString()
   });
 
-  // Send to management (WhatsApp)
+  // Deliver to management via WhatsApp (optional)
   if (process.env.MANAGEMENT_WHATSAPP_NUMBER) {
     const summary = reportText.substring(0, 1000); // WhatsApp message limit
-    await fetch(
-      `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: process.env.MANAGEMENT_WHATSAPP_NUMBER,
-          type: 'text',
-          text: { body: summary }
-        })
-      }
-    );
+    await sendWhatsAppMessage(process.env.MANAGEMENT_WHATSAPP_NUMBER, summary)
+      .catch(err => console.error('Management WhatsApp delivery failed:', err));
+  } else {
+    console.log('No MANAGEMENT_WHATSAPP_NUMBER set. Report stored in DB only.');
   }
 
-  console.log('Weekly insights generated and delivered.');
+  console.log('Weekly insights generated and stored.');
 }
 
 // Schedule: Every Sunday at 09:00 AM Jordan time (UTC+3 = 06:00 UTC)
@@ -197,6 +194,7 @@ node -e "require('dotenv').config(); require('./src/services/insights').generate
 ## Required `.env` additions
 
 ```
+# Optional: WhatsApp number for management weekly report
 MANAGEMENT_WHATSAPP_NUMBER=962XXXXXXXXX
 ```
 
@@ -207,8 +205,10 @@ MANAGEMENT_WHATSAPP_NUMBER=962XXXXXXXXX
 - [ ] `node-cron` installed
 - [ ] `src/services/insights.js` created
 - [ ] `startInsightsCron()` called in `src/index.js`
-- [ ] Stats aggregation returns correct counts
-- [ ] Claude returns meaningful Arabic report text
-- [ ] Report stored in `weekly_insights` table
-- [ ] Management notification sent (or logged)
+- [ ] Stats use direct Supabase queries (no RPC)
+- [ ] All numeric columns populated in `weekly_insights` insert
+- [ ] OpenAI returns meaningful Arabic report text
+- [ ] Report stored in `weekly_insights` table with all fields
+- [ ] Management WhatsApp delivery uses shared `sendWhatsAppMessage`
 - [ ] Manual test run completes without errors
+

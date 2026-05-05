@@ -1,13 +1,29 @@
 -- 02_leads.sql
 -- Core lead/customer table
 
--- Placeholder: see docs/schema_reference.md for full column list
--- Will be implemented in database build step
-
 CREATE TABLE leads (
-  -- id, name, phone, platform_user_id, primary_channel,
-  -- lead_status, tags, health_topic, service_interest,
-  -- last_message, last_message_at, recommended_next_action,
-  -- priority, handoff_required, assigned_to, notes,
-  -- last_reply_at, created_at, updated_at
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT,
+  phone TEXT UNIQUE NOT NULL,
+  platform_user_id TEXT,
+  primary_channel TEXT DEFAULT 'whatsapp',
+
+  -- AI classification fields
+  lead_temperature TEXT DEFAULT 'unknown',          -- hot | cold | not_interested | unknown
+  service_interest TEXT DEFAULT 'unclear',          -- consultation | treatment_program | unclear
+  workflow_status TEXT DEFAULT 'new',               -- new | needs_human | payment_link_sent | booked | converted | lost
+  tags TEXT[] DEFAULT '{}',
+  health_topic TEXT,
+
+  -- Operational fields
+  last_message TEXT,
+  last_message_at TIMESTAMPTZ,
+  last_reply_at TIMESTAMPTZ,
+  recommended_next_action TEXT,
+  handoff_required BOOLEAN DEFAULT FALSE,
+  assigned_to TEXT,
+  notes TEXT,
+
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );

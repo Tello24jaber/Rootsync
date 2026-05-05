@@ -1,5 +1,6 @@
 {
-  "lead_status": "program_lead",
+  "lead_temperature": "hot",
+  "workflow_status": "new",
   "tags": ["program_interest", "booking_question"],
   "health_topic": "general",
   "service_interest": "treatment_program",

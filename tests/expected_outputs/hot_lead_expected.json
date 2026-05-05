@@ -1,5 +1,6 @@
 {
-  "lead_status": "hot_lead",
+  "lead_temperature": "hot",
+  "workflow_status": "new",
   "tags": ["price_question", "consultation_interest", "booking_question"],
   "health_topic": "general",
   "service_interest": "consultation",

@@ -31,6 +31,7 @@ src/
 
 ```js
 const supabase = require('../lib/supabase');
+const openai = require('../lib/openai');
 const { sendHandoff } = require('./handoff');
 const { sendReply } = require('./reply');
 const fs = require('fs');
@@ -40,27 +41,16 @@ const SYSTEM_PROMPT = fs.readFileSync(
   path.join(__dirname, '../../prompts/classification_prompt.md'), 'utf8'
 );
 
-async function callClaude(messageText, channel, customerPhone) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': process.env.CLAUDE_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 600,
-      system: SYSTEM_PROMPT,
-      messages: [{
-        role: 'user',
-        content: `رسالة العميل:\n${messageText}\n\nمعلومات إضافية:\n- القناة: ${channel}\n- رقم الهاتف: ${customerPhone}\n\nأرجع JSON فقط.`
-      }]
-    })
+async function callOpenAI(messageText, channel, customerPhone) {
+  const res = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    max_tokens: 600,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `رسالة العميل:\n${messageText}\n\nمعلومات إضافية:\n- القناة: ${channel}\n- رقم الهاتف: ${customerPhone}\n\nأرجع JSON فقط.` }
+    ]
   });
-  if (!res.ok) throw new Error(`Claude API error: ${res.status}`);
-  const data = await res.json();
-  return data.content[0].text;
+  return res.choices[0].message.content;
 }
 
 function parseClassification(raw) {
@@ -69,14 +59,16 @@ function parseClassification(raw) {
     const result = JSON.parse(cleaned);
 
     if (!result.confidence || result.confidence < 0.65) {
-      result.lead_status = 'needs_human';
+      result.lead_temperature = result.lead_temperature || 'unknown';
+      result.workflow_status = 'needs_human';
       result.should_ai_reply = false;
       result.handoff_reason = result.handoff_reason || 'Low confidence score';
     }
     return result;
   } catch {
     return {
-      lead_status: 'needs_human',
+      lead_temperature: 'unknown',
+      workflow_status: 'needs_human',
       tags: [],
       health_topic: null,
       service_interest: 'unclear',
@@ -98,37 +90,36 @@ async function classifyAndRoute({ lead_id, message_id, conversation_id, message_
       message_text, customer_phone, channel,
       handoff_reason: 'Non-text message — requires human review',
       urgency: 'medium',
-      recommended_next_action: 'Review media message and respond manually',
-      lead_status: 'needs_human'
+      recommended_next_action: 'Review media message and respond manually'
     });
   }
 
-  // Get current lead status (for history record)
+  // Get current classification state (for history record)
   const { data: lead } = await supabase
-    .from('leads').select('lead_status').eq('id', lead_id).single();
-  const previousStatus = lead?.lead_status;
+    .from('leads').select('lead_temperature, workflow_status').eq('id', lead_id).single();
+  const previousTemperature = lead?.lead_temperature;
 
-  // Call Claude
-  const raw = await callClaude(message_text, channel, customer_phone);
+  // Call OpenAI
+  const raw = await callOpenAI(message_text, channel, customer_phone);
   const classification = parseClassification(raw);
 
   // Update lead
   await supabase.from('leads').update({
-    lead_status: classification.lead_status,
+    lead_temperature: classification.lead_temperature,
+    workflow_status: classification.should_ai_reply ? 'new' : 'needs_human',
+    service_interest: classification.service_interest,
     tags: classification.tags,
     health_topic: classification.health_topic,
-    service_interest: classification.service_interest,
-    priority: classification.urgency === 'high' ? 'high' : 'medium',
     recommended_next_action: classification.recommended_next_action,
     updated_at: new Date().toISOString()
   }).eq('id', lead_id);
 
-  // Insert lead_status_history if status changed
-  if (previousStatus !== classification.lead_status) {
+  // Insert lead_status_history if temperature changed
+  if (previousTemperature !== classification.lead_temperature) {
     await supabase.from('lead_status_history').insert({
       lead_id,
-      previous_status: previousStatus,
-      new_status: classification.lead_status,
+      previous_status: previousTemperature,
+      new_status: classification.lead_temperature,
       changed_by: 'ai',
       reason: `AI classification — confidence: ${classification.confidence}`
     });
@@ -145,7 +136,7 @@ async function classifyAndRoute({ lead_id, message_id, conversation_id, message_
   const context = {
     lead_id, message_id, conversation_id,
     message_text, customer_phone, channel,
-    lead_status: classification.lead_status,
+    lead_temperature: classification.lead_temperature,
     service_interest: classification.service_interest,
     health_topic: classification.health_topic,
     sentiment: classification.sentiment,
@@ -175,18 +166,18 @@ curl -X POST http://localhost:3000/webhook/whatsapp \
   -d @tests/test_messages/hot_lead.json
 ```
 
-Check that `leads.lead_status`, `lead_status_history`, and `message_topics` match `tests/expected_outputs/hot_lead_expected.json`.
+Check that `leads.lead_temperature`, `lead_status_history`, and `message_topics` match `tests/expected_outputs/hot_lead_expected.json`.
 
 ---
 
 ## Checklist
 
 - [ ] `src/services/classify.js` created
-- [ ] Claude API call working (returns valid JSON)
+- [ ] OpenAI API call working (returns valid JSON)
 - [ ] Parse fallback handles malformed responses
 - [ ] Low-confidence fallback to `needs_human` works
 - [ ] Lead record updated after classification
-- [ ] `lead_status_history` inserted on status change
+- [ ] `lead_status_history` inserted on temperature change
 - [ ] `message_topics` inserted
 - [ ] Routing to `sendReply` vs `sendHandoff` correct
 - [ ] All 5 test cases produce expected outputs

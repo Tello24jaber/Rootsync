@@ -50,9 +50,10 @@ src/
     webhook.js          ← POST /webhook/whatsapp  (Phase 3)
   services/
     normalize.js        ← Parse raw WhatsApp payload (Phase 3)
-    classify.js         ← OpenAI classification call (Phase 4)
-    reply.js            ← OpenAI safe reply call (Phase 6)
+    classify.js         ← Claude classification call (Phase 4)
+    reply.js            ← Claude safe reply call (Phase 6)
     handoff.js          ← Human handoff logic (Phase 5)
+    whatsapp.js         ← Shared WhatsApp send helper (Phase 5)
     embed.js            ← Embedding pipeline (Phase 8)
     insights.js         ← Weekly insights cron (Phase 9)
   db/

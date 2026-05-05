@@ -1,6 +1,6 @@
 # Reply Prompt Template
-# Used in: Workflow 3 — Safe AI Reply
-# Model: Claude / OpenAI
+# Used in: src/services/reply.js
+# Model: gpt-4o-mini
 # Language: Arabic (Levantine/Jordanian tone)
 
 ## System Prompt

@@ -1,5 +1,6 @@
 {
-  "lead_status": "not_interested",
+  "lead_temperature": "not_interested",
+  "workflow_status": "new",
   "tags": ["objection_price"],
   "health_topic": "general",
   "service_interest": "unclear",

@@ -1,13 +1,24 @@
 -- 04_messages.sql
 -- Stores every inbound and outbound message
 
--- Placeholder: to be implemented in database build step
-
 CREATE TABLE messages (
-  -- id, lead_id, conversation_id, channel,
-  -- platform_message_id, direction (inbound/outbound),
-  -- message_type, text, raw_payload,
-  -- responder_type (customer/ai/human/system),
-  -- reply_type, classification_result,
-  -- embedded (bool), created_at
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL,
+  platform_message_id TEXT UNIQUE,
+  direction TEXT NOT NULL,         -- inbound | outbound
+  message_type TEXT DEFAULT 'text',
+  text TEXT,
+  raw_payload JSONB,
+  responder_type TEXT,             -- customer | ai | human | system
+  reply_type TEXT,
+
+  -- Send tracking (outbound only)
+  send_status TEXT DEFAULT 'pending',   -- pending | sent | failed
+  send_error TEXT,
+  sent_at TIMESTAMPTZ,
+
+  embedded BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );

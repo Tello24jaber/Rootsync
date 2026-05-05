@@ -110,9 +110,12 @@ Create `.env` (never commit this):
 SUPABASE_URL=https://bynwpzxxkutvxdkcydfx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<from Supabase dashboard>
 OPENAI_API_KEY=<from OpenAI dashboard>
-WHATSAPP_TOKEN=<from Meta dashboard>
+WHATSAPP_ACCESS_TOKEN=<from Meta dashboard>
 WHATSAPP_PHONE_NUMBER_ID=<from Meta dashboard>
+WHATSAPP_BUSINESS_ACCOUNT_ID=<from Meta dashboard>
 WEBHOOK_VERIFY_TOKEN=<choose any random string>
+TEAM_NOTIFICATION_EMAIL=<team email for handoff alerts>
+MANAGEMENT_WHATSAPP_NUMBER=<management WhatsApp number>
 PORT=3000
 ```
 

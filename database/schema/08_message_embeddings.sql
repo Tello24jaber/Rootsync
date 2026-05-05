@@ -1,11 +1,17 @@
 -- 08_message_embeddings.sql
 -- Vector embeddings for semantic search (pgvector)
 
--- Placeholder: to be implemented in embeddings build step
-
 CREATE TABLE message_embeddings (
-  -- id, message_id, lead_id, conversation_id,
-  -- channel, embedding vector(1536),
-  -- health_topic, customer_intent, lead_status,
-  -- timestamp, created_at
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+  lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  channel TEXT,
+  embedding vector(1536) NOT NULL,
+  health_topic TEXT,
+  customer_intent TEXT,
+  lead_temperature TEXT,
+  metadata JSONB DEFAULT '{}',
+  timestamp TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );

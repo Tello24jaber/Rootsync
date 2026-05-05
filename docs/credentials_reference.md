@@ -11,7 +11,7 @@ All credentials are stored in `.env` (never committed to git).
 | `WEBHOOK_VERIFY_TOKEN` | Your chosen verify token for Meta webhook | routes/webhook |
 | `SUPABASE_URL` | Supabase project URL | lib/supabase (all services) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | lib/supabase (all services) |
-| `CLAUDE_API_KEY` | Anthropic API key | services/classify, services/reply, services/insights |
+| `OPENAI_API_KEY` | OpenAI API key — classification, reply, insights, embeddings | services/classify, services/reply, services/insights, services/embed |
 | `OPENAI_API_KEY` | OpenAI API key | lib/openai, services/embed |
 | `GOOGLE_SHEETS_ID` | Google Sheet ID from URL | services/sync |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account email | services/sync |

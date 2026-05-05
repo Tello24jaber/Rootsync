@@ -1,32 +1,46 @@
-# Lead Statuses & Tags Reference
+# Lead Status Design Reference
 
-## Lead Statuses
+## Fields
 
-| Status | Meaning |
+A lead has three independent classification fields, plus tags.
+
+### `lead_temperature`
+
+The AI's read of how sales-ready the lead is.
+
+| Value | Meaning |
 |---|---|
-| `new` | First message, not yet classified |
-| `hot_lead` | Ready to book, asks for payment/link/appointment |
-| `cold_lead` | Interested but not ready yet |
-| `not_interested` | Refused, low-intent "maybe later", price objection |
-| `needs_human` | Requires human review |
-| `consultation_lead` | Interested in doctor consultation |
-| `program_lead` | Interested in treatment program |
-| `payment_link_sent` | Payment link was sent |
-| `booked` | Appointment booked |
-| `converted` | Paid / became official patient or subscriber |
+| `hot` | Ready to book — asking about price, payment, or appointment |
+| `cold` | Interested but not ready yet |
+| `not_interested` | Refused, price objection, low intent |
+| `unknown` | First message, not yet classified |
 
-## Priority Logic
+### `service_interest`
 
-| Condition | Priority |
+What service the lead is asking about.
+
+| Value | Meaning |
 |---|---|
-| `hot_lead` | high |
-| `needs_human` | high |
-| `payment_link_sent` | high |
-| `program_lead` | high or medium |
-| `cold_lead` | medium |
-| `not_interested` | low |
+| `consultation` | Interested in a doctor consultation |
+| `treatment_program` | Interested in a treatment/wellness program |
+| `unclear` | Cannot determine from message |
 
-## Tags
+### `workflow_status`
+
+The operational state managed by the team (not set by AI except for `needs_human`).
+
+| Value | Meaning |
+|---|---|
+| `new` | Just created, no action taken |
+| `needs_human` | AI flagged for human review |
+| `payment_link_sent` | Team sent payment link |
+| `booked` | Appointment confirmed |
+| `converted` | Paid / became official patient |
+| `lost` | Confirmed not proceeding |
+
+### `tags`
+
+Array. Multiple tags per lead allowed.
 
 - `price_question`
 - `booking_question`
@@ -43,4 +57,6 @@
 - `needs_doctor`
 - `needs_customer_service`
 
-A lead has **one status** and **multiple tags**.
+## Migration Note
+
+`consultation_lead` and `program_lead` are replaced by `service_interest = consultation` and `service_interest = treatment_program`. Do not use them as `lead_temperature` values.

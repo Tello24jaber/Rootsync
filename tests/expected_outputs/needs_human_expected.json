@@ -1,5 +1,6 @@
 {
-  "lead_status": "needs_human",
+  "lead_temperature": "unknown",
+  "workflow_status": "needs_human",
   "tags": ["lab_or_file_sent", "medical_question", "needs_doctor"],
   "health_topic": "lab_results",
   "service_interest": "unclear",

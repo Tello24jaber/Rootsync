@@ -1,6 +1,6 @@
 # Classification Prompt Template
-# Used in: Workflow 2 — Lead Classification
-# Model: Claude / OpenAI (strong JSON output required)
+# Used in: src/services/classify.js
+# Model: gpt-4o-mini
 # Language: Arabic input, JSON output
 
 ## System Prompt
@@ -13,8 +13,8 @@
 - لا تشخّص أي مرض أبداً.
 - لا توصي بأدوية أو علاجات محددة.
 - لا تفسّر تحاليل أو صور طبية.
-- إذا كانت الرسالة تحتوي على أعراض طارئة (ألم صدر، ضيق نفس، إغماء، نزيف شديد)، اضبط urgency = high وneeds_human.
-- إذا كان الـ confidence أقل من 0.65، اضبط lead_status = needs_human.
+- إذا كانت الرسالة تحتوي على أعراض طارئة (ألم صدر، ضيق نفس، إغماء، نزيف شديد)، اضبط urgency = high وshould_ai_reply = false.
+- إذا كان الـ confidence أقل من 0.65، اضبط should_ai_reply = false.
 - أرجع JSON فقط بدون أي نص إضافي.
 ```
 
@@ -30,10 +30,10 @@
 
 أرجع JSON بالهيكل التالي فقط:
 {
-  "lead_status": "",
+  "lead_temperature": "",
+  "service_interest": "",
   "tags": [],
   "health_topic": "",
-  "service_interest": "",
   "urgency": "",
   "sentiment": "",
   "should_ai_reply": true,
@@ -45,8 +45,8 @@
 
 ## Allowed Values Reference
 
-- lead_status: new | hot_lead | cold_lead | not_interested | needs_human | consultation_lead | program_lead | payment_link_sent | booked | converted
+- lead_temperature: hot | cold | not_interested | unknown
 - service_interest: consultation | treatment_program | unclear
 - urgency: low | medium | high
 - sentiment: positive | neutral | negative
-- confidence: 0.0 – 1.0 (fallback to needs_human if < 0.65)
+- confidence: 0.0 – 1.0 (set workflow_status = needs_human if < 0.65)

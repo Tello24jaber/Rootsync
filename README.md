@@ -11,17 +11,16 @@ System 1 handles all incoming customer messages, AI-assisted replies, lead class
 ## Architecture
 
 ```
-Incoming Message (WhatsApp / Instagram)
-  → n8n Webhook
+Incoming Message (WhatsApp)
+  → Express Webhook (POST /webhook/whatsapp)
   → Normalize Message
   → Find or Create Lead
   → Store Inbound Message
-  → Lead Classification (AI)
-  → Update Lead Status
-  → AI Reply or Human Handoff
-  → Send Message
-  → Update Lead Table
-  → Store for Analytics / Vector Search
+  → AI Classification (Claude)
+  → Update Lead Record
+  → AI Safe Reply or Human Handoff
+  → Send Message via WhatsApp API
+  → Store Outbound Message + Analytics
 ```
 
 ---
@@ -30,11 +29,11 @@ Incoming Message (WhatsApp / Instagram)
 
 | Layer       | Technology                        |
 |-------------|-----------------------------------|
-| Workflow    | n8n (self-hosted or cloud)        |
-| Database    | Supabase PostgreSQL               |
-| Embeddings  | pgvector                          |
-| AI/LLM      | Claude API / OpenAI               |
-| Channels    | WhatsApp Business Cloud (v1)      |
+| Backend     | Node.js + Express                 |
+| Database    | Supabase (PostgreSQL)             |
+| Embeddings  | pgvector (1536-dim)               |
+| AI/LLM      | OpenAI (gpt-4o-mini + text-embedding-3-small) |
+| Channels    | WhatsApp Business Cloud API       |
 | Dashboard   | Google Sheets (MVP) → Next.js     |
 
 ---
@@ -43,8 +42,13 @@ Incoming Message (WhatsApp / Instagram)
 
 ```
 rootsync-system1/
+├── src/                # Node.js/Express application code
+│   ├── index.js
+│   ├── routes/
+│   ├── services/
+│   ├── db/
+│   └── lib/
 ├── database/           # SQL schema, migrations, seeds
-├── n8n/                # Workflow JSON exports and code nodes
 ├── prompts/            # AI prompt templates
 ├── docs/               # Architecture and reference docs
 └── tests/              # Test messages and expected outputs
@@ -54,18 +58,15 @@ rootsync-system1/
 
 ## MVP Build Order
 
-1. Database schema
-2. Webhook test with fake payload
-3. Normalize message code node
+1. Database schema (run SQL files in Supabase)
+2. Node.js project setup + client singletons
+3. Express webhook route + message normalization
 4. Insert lead/message to DB
-5. AI classification
-6. Parse classification JSON
-7. Update lead table
-8. Human handoff
-9. AI safe reply
-10. Send WhatsApp reply
-11. Embeddings
-12. Weekly insights
+5. AI classification service
+6. Human handoff service
+7. AI safe reply service
+8. Embeddings pipeline (cron)
+9. Weekly insights report (cron)
 
 ---
 

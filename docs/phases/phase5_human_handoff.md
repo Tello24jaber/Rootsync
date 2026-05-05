@@ -2,13 +2,13 @@
 
 ## Goal
 
-Build the handoff service. When a message is unsafe for AI reply, update the lead to `needs_human`, create a handoff record, notify the customer service team, and send a safe holding message to the customer.
+Build the handoff service. When a message is unsafe for AI reply, update the lead's `workflow_status` to `needs_human`, create a handoff record, notify the CS team, and send a safe holding message to the customer.
 
 ## Exit Criteria
 
-- [ ] Lead status set to `needs_human` in Supabase
+- [ ] `leads.workflow_status` set to `needs_human` in Supabase
 - [ ] `human_handoffs` row created with correct urgency and reason
-- [ ] Team notification sent with all required context
+- [ ] Team notified via email (primary) or WhatsApp (optional)
 - [ ] Holding message sent to customer and stored as outbound message
 - [ ] Workflow completes without error for all handoff scenarios
 
@@ -18,16 +18,17 @@ Build the handoff service. When a message is unsafe for AI reply, update the lea
 
 ```
 src/
+  services/whatsapp.js  <- Shared WhatsApp send helper
   services/handoff.js   <- Human handoff logic
 ```
 
 ---
 
-## `src/services/handoff.js`
+## `src/services/whatsapp.js`
+
+Shared helper used by handoff, reply, and insights. Do not duplicate this in other services.
 
 ```js
-const supabase = require('../lib/supabase');
-
 async function sendWhatsAppMessage(to, text) {
   const res = await fetch(
     `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
@@ -49,31 +50,69 @@ async function sendWhatsAppMessage(to, text) {
   return res.json();
 }
 
+module.exports = { sendWhatsAppMessage };
+```
+
+---
+
+## `src/services/handoff.js`
+
+```js
+const supabase = require('../lib/supabase');
+const { sendWhatsAppMessage } = require('./whatsapp');
+const nodemailer = require('nodemailer');
+
+async function notifyTeam({ lead, handoff_reason, recommended_next_action, urgency }) {
+  const urgencyLabel = { high: '🔴 URGENT', medium: '🟡 Medium', low: '🟢 Low' }[urgency] || '🟡 Medium';
+  const subject = `${urgencyLabel} — Human Handoff Required`;
+  const body = `A customer message requires human review.
+
+Name: ${lead?.name || 'Unknown'}
+Phone: ${lead?.phone}
+Channel: ${lead?.primary_channel}
+Last message: ${lead?.last_message}
+Reason: ${handoff_reason}
+Suggested action: ${recommended_next_action}`;
+
+  // Primary: email notification
+  if (process.env.TEAM_NOTIFICATION_EMAIL) {
+    const transporter = nodemailer.createTransport({ sendmail: true });
+    await transporter.sendMail({
+      from: process.env.NOTIFICATION_FROM_EMAIL || 'noreply@rootsync.app',
+      to: process.env.TEAM_NOTIFICATION_EMAIL,
+      subject,
+      text: body
+    }).catch(err => console.error('Email notification failed:', err));
+  }
+
+  // Optional: WhatsApp notification
+  if (process.env.TEAM_WHATSAPP_NUMBER) {
+    const waBody = `${urgencyLabel}\n\n${body}`;
+    await sendWhatsAppMessage(process.env.TEAM_WHATSAPP_NUMBER, waBody)
+      .catch(err => console.error('WhatsApp team notification failed:', err));
+  }
+
+  if (!process.env.TEAM_NOTIFICATION_EMAIL && !process.env.TEAM_WHATSAPP_NUMBER) {
+    console.warn('Handoff: no TEAM_NOTIFICATION_EMAIL or TEAM_WHATSAPP_NUMBER configured.');
+    console.warn('Handoff details:', { lead, handoff_reason, recommended_next_action, urgency });
+  }
+}
+
 async function sendHandoff({
   lead_id, message_id, conversation_id,
   message_text, customer_phone, channel,
   handoff_reason, urgency = 'medium',
-  recommended_next_action, lead_status
+  recommended_next_action
 }) {
-  // 1. Update lead
+  // 1. Update lead workflow_status
   await supabase.from('leads').update({
-    lead_status: 'needs_human',
+    workflow_status: 'needs_human',
     handoff_required: true,
-    priority: urgency === 'high' ? 'high' : 'medium',
     recommended_next_action,
     updated_at: new Date().toISOString()
   }).eq('id', lead_id);
 
-  // 2. Insert lead_status_history
-  await supabase.from('lead_status_history').insert({
-    lead_id,
-    previous_status: lead_status,
-    new_status: 'needs_human',
-    changed_by: 'ai',
-    reason: handoff_reason
-  });
-
-  // 3. Insert human_handoffs record
+  // 2. Insert human_handoffs record
   await supabase.from('human_handoffs').insert({
     lead_id,
     message_id,
@@ -83,45 +122,35 @@ async function sendHandoff({
     notified_at: new Date().toISOString()
   });
 
-  // 4. Fetch lead details for notification
+  // 3. Fetch lead details for notification
   const { data: lead } = await supabase
     .from('leads')
-    .select('name, phone, primary_channel, last_message, tags')
+    .select('name, phone, primary_channel, last_message')
     .eq('id', lead_id)
     .single();
 
-  // 5. Build and send team notification
-  const urgencyEmoji = { high: 'ðŸ"´', medium: 'ðŸŸ¡', low: 'ðŸŸ¢' }[urgency] || 'ðŸŸ¡';
-  const notification = `${urgencyEmoji} *تنبيه: تحويل لموظف*
+  // 4. Notify team
+  await notifyTeam({ lead, handoff_reason, recommended_next_action, urgency });
 
-ðŸ'¤ الاسم: ${lead?.name || 'غير معروف'}
-ðŸ"± الهاتف: ${lead?.phone}
-ðŸ"² القناة: ${lead?.primary_channel}
-ðŸ"© آخر رسالة: ${lead?.last_message}
-ðŸ"Œ سبب التحويل: ${handoff_reason}
-â¡ï¸ الإجراء المقترح: ${recommended_next_action}`;
-
-  // Send to team number (or Telegram — configure as needed)
-  if (process.env.TEAM_WHATSAPP_NUMBER) {
-    await sendWhatsAppMessage(process.env.TEAM_WHATSAPP_NUMBER, notification).catch(err =>
-      console.error('Team notification failed:', err)
-    );
-  }
-
-  // 6. Send holding message to customer
+  // 5. Send holding message to customer
   const holdingMessage = urgency === 'high'
     ? 'شكراً لتواصلك. موضوعك يحتاج اهتمام عاجل وسيتواصل معك أحد المختصين خلال دقائق.'
     : 'شكراً لتواصلك. سيتواصل معك أحد فريقنا قريباً لمساعدتك.';
 
   let whatsappMsgId = null;
+  let sendStatus = 'pending';
+  let sendError = null;
   try {
     const waSent = await sendWhatsAppMessage(customer_phone, holdingMessage);
     whatsappMsgId = waSent?.messages?.[0]?.id;
+    sendStatus = 'sent';
   } catch (err) {
     console.error('Holding message send failed:', err);
+    sendStatus = 'failed';
+    sendError = err.message;
   }
 
-  // 7. Store holding message in DB
+  // 6. Store holding message in DB
   await supabase.from('messages').insert({
     lead_id,
     conversation_id,
@@ -130,8 +159,11 @@ async function sendHandoff({
     message_type: 'text',
     text: holdingMessage,
     platform_message_id: whatsappMsgId,
-    responder_type: 'ai',
-    reply_type: 'handoff'
+    responder_type: 'system',
+    reply_type: 'handoff',
+    send_status: sendStatus,
+    send_error: sendError,
+    sent_at: sendStatus === 'sent' ? new Date().toISOString() : null
   });
 }
 
@@ -140,18 +172,22 @@ module.exports = { sendHandoff };
 
 ---
 
-## Configuration
+## Setup
+
+```bash
+npm install nodemailer
+```
 
 Add to `.env`:
 ```
-TEAM_WHATSAPP_NUMBER=962XXXXXXXXX   # team member number to receive alerts
+TEAM_NOTIFICATION_EMAIL=team@yourcompany.com
+# Optional:
+TEAM_WHATSAPP_NUMBER=962XXXXXXXXX
 ```
 
 ---
 
 ## Testing
-
-Trigger a handoff by sending a `needs_human` test message:
 
 ```bash
 curl -X POST http://localhost:3000/webhook/whatsapp \
@@ -160,19 +196,20 @@ curl -X POST http://localhost:3000/webhook/whatsapp \
 ```
 
 Check:
-- `leads.lead_status` = `needs_human`
+- `leads.workflow_status` = `needs_human`
 - `human_handoffs` row created
-- Outbound holding message in `messages` table
-- Team notification received (if `TEAM_WHATSAPP_NUMBER` set)
+- Outbound holding message in `messages` table with `send_status`
+- Team email or WhatsApp notification received
 
 ---
 
 ## Checklist
 
+- [ ] `src/services/whatsapp.js` created (shared helper)
 - [ ] `src/services/handoff.js` created
-- [ ] Lead status updated to `needs_human`
+- [ ] `leads.workflow_status` updated to `needs_human`
 - [ ] `human_handoffs` row inserted
-- [ ] `lead_status_history` row inserted
-- [ ] Team notification sent (or logged if no number configured)
+- [ ] Team notified via email (and optionally WhatsApp)
 - [ ] Holding message sent to customer and stored
-- [ ] Works for high, medium, and low urgency
+- [ ] `send_status` tracked on outbound message
+
