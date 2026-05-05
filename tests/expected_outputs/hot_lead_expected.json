@@ -1,0 +1,12 @@
+{
+  "lead_status": "hot_lead",
+  "tags": ["price_question", "consultation_interest", "booking_question"],
+  "health_topic": "general",
+  "service_interest": "consultation",
+  "urgency": "medium",
+  "sentiment": "positive",
+  "should_ai_reply": true,
+  "handoff_reason": null,
+  "recommended_next_action": "Send payment/registration link",
+  "confidence": 0.92
+}

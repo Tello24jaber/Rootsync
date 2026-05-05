@@ -1,0 +1,12 @@
+{
+  "lead_status": "not_interested",
+  "tags": ["objection_price"],
+  "health_topic": "general",
+  "service_interest": "unclear",
+  "urgency": "low",
+  "sentiment": "negative",
+  "should_ai_reply": true,
+  "handoff_reason": null,
+  "recommended_next_action": "Acknowledge objection, leave door open politely",
+  "confidence": 0.88
+}

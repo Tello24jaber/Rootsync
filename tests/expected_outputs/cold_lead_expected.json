@@ -1,0 +1,12 @@
+{
+  "lead_status": "cold_lead",
+  "tags": ["program_interest"],
+  "health_topic": "general",
+  "service_interest": "treatment_program",
+  "urgency": "low",
+  "sentiment": "neutral",
+  "should_ai_reply": true,
+  "handoff_reason": null,
+  "recommended_next_action": "Explain treatment program and ask qualifying questions",
+  "confidence": 0.85
+}

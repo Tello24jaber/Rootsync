@@ -1,0 +1,4 @@
+rootsync-system1/.env
+.env
+*.env
+node_modules/

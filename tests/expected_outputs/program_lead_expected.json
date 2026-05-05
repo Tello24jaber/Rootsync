@@ -1,0 +1,12 @@
+{
+  "lead_status": "program_lead",
+  "tags": ["program_interest", "booking_question"],
+  "health_topic": "general",
+  "service_interest": "treatment_program",
+  "urgency": "medium",
+  "sentiment": "positive",
+  "should_ai_reply": true,
+  "handoff_reason": null,
+  "recommended_next_action": "Explain program steps and send registration link",
+  "confidence": 0.91
+}

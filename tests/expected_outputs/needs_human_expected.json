@@ -1,0 +1,12 @@
+{
+  "lead_status": "needs_human",
+  "tags": ["lab_or_file_sent", "medical_question", "needs_doctor"],
+  "health_topic": "lab_results",
+  "service_interest": "unclear",
+  "urgency": "medium",
+  "sentiment": "neutral",
+  "should_ai_reply": false,
+  "handoff_reason": "Customer asking for lab interpretation — AI safety rule",
+  "recommended_next_action": "Human review — do not send AI reply",
+  "confidence": 0.95
+}

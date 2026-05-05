@@ -1,0 +1,4 @@
+-- migrations/
+-- Place timestamped migration files here as the schema evolves.
+-- Naming convention: YYYYMMDD_HHMMSS_description.sql
+-- Example: 20260502_000001_initial_schema.sql
