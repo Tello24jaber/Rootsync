@@ -79,6 +79,7 @@
     .plat.on { border-color: #e1306c; color: #e1306c; background: #e1306c18; }
     .plat .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
     .plat.on .dot { background: #e1306c; box-shadow: 0 0 5px #e1306c; }
+    .platform-note { font-size: 11px; color: #777; margin-top: 8px; line-height: 1.5; }
 
     /* Progress */
     #prog-wrap { display: none; background: #222; border-radius: 6px; height: 6px; overflow: hidden; }
@@ -128,7 +129,7 @@
   <div class="logo">📸</div>
   <div>
     <h1>Social Post</h1>
-    <div class="sub">Upload media to Instagram via upload-post.com</div>
+    <div class="sub">Upload media to Instagram, TikTok, and Facebook via upload-post.com</div>
   </div>
   <a href="/">← Chat</a>
 </header>
@@ -170,6 +171,7 @@
         <div class="plat"    data-p="tiktok">   <span class="dot"></span> TikTok</div>
         <div class="plat"    data-p="facebook"> <span class="dot"></span> Facebook</div>
       </div>
+      <div class="platform-note">Supported now: Instagram, TikTok, Facebook. Planned later: YouTube Shorts, Threads.</div>
     </div>
 
     <div id="prog-wrap"><div id="prog-bar"></div></div>
@@ -323,6 +325,12 @@
       try {
         const res = await fetch('/api/social/status?request_id=' + encodeURIComponent(requestId));
         const data = await res.json();
+
+        if (!res.ok) {
+          clearInterval(pollTimer);
+          setStatus('error', `Status check failed (HTTP ${res.status})`, JSON.stringify(data, null, 2));
+          return;
+        }
 
         const overallStatus = data.status || data.overall_status || '';
         const detail = JSON.stringify(data, null, 2);

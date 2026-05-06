@@ -15,7 +15,7 @@ CREATE TABLE messages (
   reply_type TEXT,
 
   -- Send tracking (outbound only)
-  send_status TEXT DEFAULT 'pending',   -- pending | sent | failed
+  send_status TEXT DEFAULT 'pending' CHECK (send_status IN ('pending', 'sent', 'failed', 'demo_returned', 'not_sent_handoff')),   -- pending | sent | failed | demo_returned | not_sent_handoff
   send_error TEXT,
   sent_at TIMESTAMPTZ,
 

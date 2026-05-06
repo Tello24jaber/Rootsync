@@ -21,7 +21,7 @@ The backend is a **Node.js (Express)** server. Each "workflow" from the original
 | [Phase 3](./phase3_webhook_normalization.md) | Webhook & Message Normalization | Fake message → DB row |
 | [Phase 4](./phase4_ai_classification.md) | AI Lead Classification | Message → AI classification → lead updated |
 | [Phase 5](./phase5_human_handoff.md) | Human Handoff | Unsafe message → team notified |
-| [Phase 6](./phase6_ai_reply_and_send.md) | AI Safe Reply & Send | Safe message → Arabic reply sent via WhatsApp |
+| [Phase 6](./phase6_ai_reply_and_send.md) | AI Safe Reply & Send | Safe message → Arabic reply returned in demo flow |
 | [Phase 7](./phase7_lead_table_sync.md) | Lead Table Sync | Lead data visible to CS team |
 | [Phase 8](./phase8_embeddings.md) | Message Embeddings & Vector Search | Messages searchable semantically |
 | [Phase 9](./phase9_weekly_insights.md) | Weekly Insights Report | Sunday report delivered automatically |
@@ -50,8 +50,8 @@ src/
     webhook.js          ← POST /webhook/whatsapp  (Phase 3)
   services/
     normalize.js        ← Parse raw WhatsApp payload (Phase 3)
-    classify.js         ← Claude classification call (Phase 4)
-    reply.js            ← Claude safe reply call (Phase 6)
+    classify.js         ← OpenAI classification call (Phase 4)
+    reply.js            ← OpenAI safe reply call (Phase 6)
     handoff.js          ← Human handoff logic (Phase 5)
     whatsapp.js         ← Shared WhatsApp send helper (Phase 5)
     embed.js            ← Embedding pipeline (Phase 8)

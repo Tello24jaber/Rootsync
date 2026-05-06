@@ -76,6 +76,66 @@
     #deselect-btn { padding: 5px 12px; border-radius: 8px; background: transparent; color: #555; border: 1px solid #333; font-size: 12px; font-family: inherit; cursor: pointer; }
     #deselect-btn:hover { color: #aaa; border-color: #555; }
     ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+    /* ── Tabs ── */
+    #tab-nav { display: flex; gap: 4px; padding: 10px 24px 0; background: #141414; border-bottom: 1px solid #222; flex-shrink: 0; }
+    .tab-btn { padding: 7px 18px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; font-family: inherit; border: 1px solid transparent; border-bottom: none; background: transparent; color: #555; cursor: pointer; transition: all .15s; }
+    .tab-btn.active { background: #1a1a1a; border-color: #2a2a2a; color: #eee; }
+    .tab-btn:hover:not(.active) { color: #aaa; }
+
+    /* ── Social panel ── */
+    #social-panel { display: none; flex: 1; overflow-y: auto; padding: 28px 24px; direction: ltr; }
+    #social-panel.visible { display: block; }
+    .sp-container { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+    .sp-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .sp-card h2 { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+    .sp-label { font-size: 12px; color: #888; display: block; margin-bottom: 5px; }
+    .sp-textarea { background: #222; border: 1px solid #333; border-radius: 8px; color: #eee; padding: 10px 12px; font-size: 14px; font-family: inherit; width: 100%; resize: vertical; min-height: 72px; transition: border-color .2s; }
+    .sp-textarea:focus { outline: none; border-color: #e1306c; }
+    #sp-drop-zone { border: 2px dashed #333; border-radius: 10px; padding: 32px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+    #sp-drop-zone:hover, #sp-drop-zone.over { border-color: #e1306c; background: #e1306c0a; }
+    #sp-drop-zone.has-file { border-color: #00b87a; background: #00b87a08; }
+    #sp-drop-zone .dz-icon { font-size: 32px; margin-bottom: 8px; }
+    #sp-drop-zone .dz-hint { font-size: 13px; color: #666; }
+    #sp-drop-zone .dz-hint span { color: #e1306c; text-decoration: underline; }
+    #sp-file-input { display: none; }
+    #sp-file-preview { display: none; align-items: center; gap: 12px; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; }
+    #sp-file-preview.show { display: flex; }
+    #sp-prev-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; display: none; }
+    #sp-prev-thumb.show { display: block; }
+    #sp-prev-vid { width: 48px; height: 48px; background: #222; border-radius: 6px; display: none; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    #sp-prev-vid.show { display: flex; }
+    .sp-prev-info { flex: 1; overflow: hidden; }
+    .sp-prev-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sp-prev-size { font-size: 11px; color: #666; margin-top: 2px; }
+    #sp-remove-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 18px; border-radius: 4px; padding: 4px; transition: color .2s; }
+    #sp-remove-btn:hover { color: #ef4444; }
+    .sp-platforms { display: flex; gap: 10px; flex-wrap: wrap; }
+    .sp-plat { display: flex; align-items: center; gap: 6px; background: #222; border: 1px solid #333; border-radius: 8px; color: #aaa; padding: 8px 14px; font-size: 13px; cursor: pointer; transition: all .2s; user-select: none; }
+    .sp-plat.on { border-color: #e1306c; color: #e1306c; background: #e1306c18; }
+    .sp-plat .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+    .sp-plat.on .dot { background: #e1306c; box-shadow: 0 0 5px #e1306c; }
+    .sp-platform-note { font-size: 11px; color: #777; margin-top: 6px; line-height: 1.5; }
+    #sp-prog-wrap { display: none; background: #222; border-radius: 6px; height: 6px; overflow: hidden; }
+    #sp-prog-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #e1306c, #f77737); transition: width .2s; border-radius: 6px; }
+    #sp-submit-btn { background: linear-gradient(135deg, #e1306c, #f77737); border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: 600; padding: 12px; cursor: pointer; width: 100%; transition: opacity .2s; font-family: inherit; }
+    #sp-submit-btn:hover { opacity: .88; }
+    #sp-submit-btn:disabled { opacity: .4; cursor: not-allowed; }
+    #sp-status-card { display: none; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; flex-direction: column; gap: 14px; }
+    #sp-status-card.show { display: flex; }
+    #sp-status-card h2 { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+    .sp-status-row { display: flex; align-items: center; gap: 10px; }
+    .sp-status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+    .sp-status-badge.pending    { background: #78350f22; border: 1px solid #92400e; color: #fbbf24; }
+    .sp-status-badge.success    { background: #052e1622; border: 1px solid #065f46; color: #34d399; }
+    .sp-status-badge.error      { background: #450a0a22; border: 1px solid #7f1d1d; color: #f87171; }
+    .sp-status-badge.processing { background: #1e1b4b22; border: 1px solid #3730a3; color: #a5b4fc; }
+    .sp-pulse { width: 8px; height: 8px; border-radius: 50%; animation: pulse 1.2s infinite; }
+    .sp-pulse.yellow { background: #fbbf24; }
+    .sp-pulse.blue   { background: #a5b4fc; }
+    #sp-status-detail { font-size: 12px; font-family: monospace; color: #666; line-height: 1.6; word-break: break-all; }
+    #sp-request-id-row { font-size: 11px; color: #444; font-family: monospace; }
+    .sp-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff4; border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
   </style>
 </head>
 <body>
@@ -90,6 +150,10 @@
     <div id="sync-dot"></div>
   </div>
 </header>
+<div id="tab-nav">
+  <button class="tab-btn active" id="tab-leads" onclick="switchTab('leads')">📋 العملاء</button>
+  <button class="tab-btn" id="tab-social" onclick="switchTab('social')">📸 النشر الاجتماعي</button>
+</div>
 <div id="delete-bar">
   <span id="delete-count">0 محادثة محددة</span>
   <button id="delete-btn" onclick="deleteSelected()">🗑️ حذف المحددة</button>
@@ -117,6 +181,56 @@
     <tbody id="table-body"><tr><td colspan="4" class="table-info">جاري التحميل…</td></tr></tbody>
   </table>
 </div>
+
+<!-- ── Social Post Panel ── -->
+<div id="social-panel">
+  <div class="sp-container">
+    <div class="sp-card">
+      <h2>New Post</h2>
+      <div>
+        <label class="sp-label">Media File (video or image)</label>
+        <div id="sp-drop-zone" onclick="document.getElementById('sp-file-input').click()">
+          <div class="dz-icon">🎬</div>
+          <div class="dz-hint">Drag &amp; drop here, or <span>browse</span></div>
+          <input type="file" id="sp-file-input" accept="video/*,image/*" />
+        </div>
+        <div id="sp-file-preview">
+          <img id="sp-prev-thumb" alt="" />
+          <div id="sp-prev-vid">🎬</div>
+          <div class="sp-prev-info">
+            <div class="sp-prev-name" id="sp-prev-name"></div>
+            <div class="sp-prev-size" id="sp-prev-size"></div>
+          </div>
+          <button id="sp-remove-btn" onclick="spClearFile()">✕</button>
+        </div>
+      </div>
+      <div>
+        <label class="sp-label">Caption</label>
+        <textarea class="sp-textarea" id="sp-title" placeholder="Write your caption here…"></textarea>
+      </div>
+      <div>
+        <label class="sp-label">Platforms</label>
+        <div class="sp-platforms">
+          <div class="sp-plat on" data-p="instagram"><span class="dot"></span> Instagram</div>
+          <div class="sp-plat"    data-p="tiktok">   <span class="dot"></span> TikTok</div>
+          <div class="sp-plat"    data-p="facebook"> <span class="dot"></span> Facebook</div>
+        </div>
+        <div class="sp-platform-note">Supported now: Instagram, TikTok, Facebook. Planned later: YouTube Shorts, Threads.</div>
+      </div>
+      <div id="sp-prog-wrap"><div id="sp-prog-bar"></div></div>
+      <button id="sp-submit-btn" onclick="spSubmitPost()">Post Now</button>
+    </div>
+    <div id="sp-status-card">
+      <h2>Upload Status</h2>
+      <div class="sp-status-row">
+        <span id="sp-status-badge" class="sp-status-badge pending"><span class="sp-pulse yellow"></span> Pending</span>
+      </div>
+      <div id="sp-request-id-row"></div>
+      <div id="sp-status-detail">Waiting for update…</div>
+    </div>
+  </div>
+</div>
+
 <script>
   // If opened from Live Server (port 5500) instead of the Express server, route API to port 3000
   const API = (location.port === '3000' || location.port === '') ? '' : 'http://localhost:3000';
@@ -286,6 +400,152 @@
     } finally {
       btn.disabled = false;
     }
+  }
+
+  // ── Tab switching ──
+  function switchTab(tab) {
+    const isLeads = tab === 'leads';
+    document.getElementById('tab-leads').classList.toggle('active', isLeads);
+    document.getElementById('tab-social').classList.toggle('active', !isLeads);
+    document.getElementById('delete-bar').style.display = isLeads ? '' : 'none';
+    document.getElementById('filter-bar').style.display = isLeads ? '' : 'none';
+    document.querySelector('.table-wrap').style.display = isLeads ? '' : 'none';
+    const sp = document.getElementById('social-panel');
+    if (isLeads) sp.classList.remove('visible'); else sp.classList.add('visible');
+    if (!isLeads) { document.getElementById('sp-status-card').classList.remove('show'); }
+  }
+
+  // ── Social Post ──
+  let spFile = null;
+  let spPollTimer = null;
+
+  document.querySelectorAll('.sp-plat').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
+  document.getElementById('sp-file-input').addEventListener('change', e => { if (e.target.files[0]) spSetFile(e.target.files[0]); });
+
+  const spZone = document.getElementById('sp-drop-zone');
+  spZone.addEventListener('dragover',  e => { e.preventDefault(); spZone.classList.add('over'); });
+  spZone.addEventListener('dragleave', () => spZone.classList.remove('over'));
+  spZone.addEventListener('drop', e => {
+    e.preventDefault(); spZone.classList.remove('over');
+    if (e.dataTransfer.files[0]) spSetFile(e.dataTransfer.files[0]);
+  });
+
+  function spSetFile(f) {
+    spFile = f;
+    spZone.classList.add('has-file');
+    spZone.querySelector('.dz-icon').textContent = '✓';
+    spZone.querySelector('.dz-hint').textContent = f.name;
+    document.getElementById('sp-prev-name').textContent = f.name;
+    document.getElementById('sp-prev-size').textContent = spFmtBytes(f.size);
+    const thumb = document.getElementById('sp-prev-thumb');
+    const vid   = document.getElementById('sp-prev-vid');
+    if (f.type.startsWith('image/')) {
+      thumb.src = URL.createObjectURL(f); thumb.classList.add('show'); vid.classList.remove('show');
+    } else {
+      thumb.classList.remove('show'); vid.classList.add('show');
+    }
+    document.getElementById('sp-file-preview').classList.add('show');
+  }
+
+  function spClearFile() {
+    spFile = null;
+    document.getElementById('sp-file-input').value = '';
+    spZone.classList.remove('has-file');
+    spZone.querySelector('.dz-icon').textContent = '🎬';
+    spZone.querySelector('.dz-hint').innerHTML = 'Drag & drop here, or <span>browse</span>';
+    document.getElementById('sp-file-preview').classList.remove('show');
+    document.getElementById('sp-prev-thumb').classList.remove('show');
+    document.getElementById('sp-prev-vid').classList.remove('show');
+  }
+
+  function spFmtBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  async function spSubmitPost() {
+    const title = document.getElementById('sp-title').value.trim();
+    const platforms = [...document.querySelectorAll('.sp-plat.on')].map(b => b.dataset.p);
+    if (!spFile)           return alert('Please select a file.');
+    if (!title)            return alert('Please enter a caption.');
+    if (!platforms.length) return alert('Select at least one platform.');
+
+    const btn = document.getElementById('sp-submit-btn');
+    const pw  = document.getElementById('sp-prog-wrap');
+    const pb  = document.getElementById('sp-prog-bar');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="sp-spinner"></span>Uploading…';
+    pw.style.display = 'block'; pb.style.width = '0%';
+
+    const fd = new FormData();
+    fd.append('file', spFile);
+    fd.append('title', title);
+    fd.append('platforms', JSON.stringify(platforms));
+
+    try {
+      const data = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API}/api/social/post`);
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable) pb.style.width = Math.round(e.loaded / e.total * 85) + '%';
+        });
+        xhr.onload = () => {
+          pb.style.width = '100%';
+          try { resolve({ status: xhr.status, body: JSON.parse(xhr.responseText) }); }
+          catch { reject(new Error('Invalid server response')); }
+        };
+        xhr.onerror = () => reject(new Error('Network error — is the server running?'));
+        xhr.send(fd);
+      });
+      if (data.status !== 200) throw new Error(data.body.error || `Server error ${data.status}`);
+      const requestId = data.body.result?.request_id;
+      spShowStatusCard(requestId);
+      if (requestId) spStartPolling(requestId);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Post Now';
+      setTimeout(() => { pw.style.display = 'none'; pb.style.width = '0%'; }, 1000);
+    }
+  }
+
+  function spShowStatusCard(requestId) {
+    const card = document.getElementById('sp-status-card');
+    card.classList.add('show');
+    document.getElementById('sp-request-id-row').textContent = requestId ? 'Request ID: ' + requestId : '';
+    spSetStatus('processing', '⏳ Processing…');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function spSetStatus(type, label, detail) {
+    const badge = document.getElementById('sp-status-badge');
+    badge.className = 'sp-status-badge ' + type;
+    const icons = { pending: '<span class="sp-pulse yellow"></span>', processing: '<span class="sp-pulse blue"></span>', success: '✓', error: '✗' };
+    badge.innerHTML = (icons[type] || '') + ' ' + label;
+    if (detail !== undefined) document.getElementById('sp-status-detail').textContent = detail;
+  }
+
+  function spStartPolling(requestId) {
+    if (spPollTimer) clearInterval(spPollTimer);
+    let attempts = 0;
+    spPollTimer = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await fetch(`${API}/api/social/status?request_id=` + encodeURIComponent(requestId));
+        const data = await res.json();        if (!res.ok) {
+          clearInterval(spPollTimer);
+          spSetStatus('error', `Status check failed (HTTP ${res.status})`, JSON.stringify(data, null, 2));
+          return;
+        }        const s = data.status || data.overall_status || '';
+        const detail = JSON.stringify(data, null, 2);
+        if (/success|complete|done/i.test(s))  { spSetStatus('success', 'Posted successfully!', detail); clearInterval(spPollTimer); }
+        else if (/fail|error/i.test(s))         { spSetStatus('error', 'Upload failed', detail);        clearInterval(spPollTimer); }
+        else                                     { spSetStatus('processing', s || 'Processing…', detail); }
+      } catch (e) { document.getElementById('sp-status-detail').textContent = 'Status check failed: ' + e.message; }
+      if (attempts >= 40) { clearInterval(spPollTimer); spSetStatus('error', 'Timed out', ''); }
+    }, 3000);
   }
 
   async function setAgentStatus(leadId, status, btn) {

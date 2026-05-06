@@ -24,8 +24,8 @@ Build System 1 in this exact sequence. Do not skip steps.
 ## Phase 2 — Third-Party Integrations
 
 - [ ] Step 14: Set up Meta Developer App, get WhatsApp credentials
-- [ ] Step 15: Get Claude API key, test with a simple request
-- [ ] Step 16: Get OpenAI API key (for embeddings)
+- [ ] Step 15: Get OpenAI API key, test with a simple request (classification/reply)
+- [ ] Step 16: (Optional future) Add Anthropic Claude API key support
 - [ ] Step 17: Fill all API keys into `.env`
 
 ## Phase 3 — Webhook & Message Normalization
@@ -53,7 +53,7 @@ Build System 1 in this exact sequence. Do not skip steps.
 ## Phase 6 — AI Safe Reply
 
 - [ ] Step 29: Create `src/services/reply.js`
-- [ ] Step 30: Test with `hot_lead.json` — confirm AI reply sent to WhatsApp
+- [ ] Step 30: Test with `hot_lead.json` — confirm AI reply is stored with `send_status = demo_returned` and returned to demo UI
 - [ ] Step 31: Confirm unsafe replies fall back to handoff
 
 **Milestone 2:** WhatsApp message → classification → lead table ✓

@@ -1,77 +1,103 @@
-# RootSync — System 1: AI Messaging & Lead Intelligence
+# RootSync MVP
 
-## Overview
+## Current Scope
 
-System 1 handles all incoming customer messages, AI-assisted replies, lead classification, message storage, and conversation analytics.
+This repository contains a **demo MVP** with exactly two features:
 
-**It does NOT include:** doctor dashboard, patient profiles, appointments, medical reports, or treatment programs (those are System 2).
+1. **AI Lead Intelligence**
+   - Test message input
+   - AI classification
+   - Message storage
+   - Customer service dashboard
+   - Stop AI / human takeover controls
 
----
+2. **Multi-platform Social Posting (Demo)**
+   - Upload a post/video from UI
+   - Select supported social platforms
+   - Submit through upload-post service
 
-## Architecture
+This MVP is currently in **demo mode**.
+It is **not connected to real WhatsApp, Instagram, TikTok, or YouTube APIs yet**.
 
+## AI Provider
+
+- Current AI provider: **OpenAI**
+- Optional future provider: **Anthropic Claude**
+
+Required env var:
+
+```env
+OPENAI_API_KEY=
 ```
-Incoming Message (WhatsApp)
-  → Express Webhook (POST /webhook/whatsapp)
-  → Normalize Message
-  → Find or Create Lead
-  → Store Inbound Message
-  → AI Classification (Claude)
-  → Update Lead Record
-  → AI Safe Reply or Human Handoff
-  → Send Message via WhatsApp API
-  → Store Outbound Message + Analytics
-```
 
----
+## Demo Mode Behavior
+
+- `APP_MODE=demo` enables demo-only messaging flow.
+- Demo endpoint: `POST /`
+- In demo mode, outbound AI replies are stored with `send_status = demo_returned`.
+- If human takeover is active (`workflow_status = needs_human` or `human_active`):
+  - incoming messages are still stored
+  - AI does not generate or send replies
+
+## Social Posting Platform Support
+
+Supported in MVP:
+
+- Instagram
+- TikTok
+- Facebook
+
+Planned later:
+
+- YouTube Shorts
+- Threads
+
+Backend validates selected platforms and rejects unsupported values.
 
 ## Tech Stack
 
-| Layer       | Technology                        |
-|-------------|-----------------------------------|
-| Backend     | Node.js + Express                 |
-| Database    | Supabase (PostgreSQL)             |
-| Embeddings  | pgvector (1536-dim)               |
-| AI/LLM      | OpenAI (gpt-4o-mini + text-embedding-3-small) |
-| Channels    | WhatsApp Business Cloud API       |
-| Dashboard   | Google Sheets (MVP) → Next.js     |
+| Layer | Technology |
+|---|---|
+| Backend | Node.js + Express |
+| Database | Supabase (PostgreSQL) |
+| AI/LLM | OpenAI (`gpt-4o-mini`) |
+| Social publishing | `upload-post` |
+| UI | Static HTML dashboards (`test-ui`, `dashboard`) |
 
----
+## Environment Setup
 
-## Project Structure
+Copy `.env.example` to `.env` and fill values.
 
-```
-rootsync-system1/
-├── src/                # Node.js/Express application code
-│   ├── index.js
-│   ├── routes/
-│   ├── services/
-│   ├── db/
-│   └── lib/
-├── database/           # SQL schema, migrations, seeds
-├── prompts/            # AI prompt templates
-├── docs/               # Architecture and reference docs
-└── tests/              # Test messages and expected outputs
+Key MVP variables:
+
+```env
+PORT=3000
+APP_MODE=demo
+AUTO_OPEN_BROWSER=false
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+UPLOAD_POST_USER=
+UPLOAD_POST_API_KEY=
 ```
 
----
+## Database Setup
 
-## MVP Build Order
+Run SQL files in `database/schema` order (`01` to `09`) on a fresh Supabase project.
 
-1. Database schema (run SQL files in Supabase)
-2. Node.js project setup + client singletons
-3. Express webhook route + message normalization
-4. Insert lead/message to DB
-5. AI classification service
-6. Human handoff service
-7. AI safe reply service
-8. Embeddings pipeline (cron)
-9. Weekly insights report (cron)
+Core tables used by the MVP:
 
----
+- `leads`
+- `conversations`
+- `messages`
+- `lead_status_history`
+- `human_handoffs`
 
-## Supported Channels
+## Lead Model
 
-- **v1:** WhatsApp Business Cloud
-- **v1.5:** Instagram DMs, Facebook Messenger
-- **Later:** TikTok, Threads
+Lead model naming is standardized across code/docs:
+
+- `lead_temperature`
+- `workflow_status`
+- `service_interest`
+- `tags`

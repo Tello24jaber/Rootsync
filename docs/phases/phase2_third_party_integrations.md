@@ -7,7 +7,7 @@ Set up and verify every external service that System 1 depends on. No workflow w
 ## Exit Criteria
 
 - [ ] WhatsApp Business Cloud webhook verified (Meta sends and receives)
-- [ ] Claude or OpenAI API key tested (returns valid response)
+- [ ] OpenAI API key tested (returns valid response)
 - [ ] Supabase credentials tested from the Node.js client (SELECT returns data)
 - [ ] Notification channel ready (WhatsApp or email to team)
 - [ ] Google Sheets access confirmed (for MVP dashboard, Phase 7)
@@ -285,8 +285,8 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=<private_key from JSON key>
 | Integration | Used In | Priority | Status |
 |---|---|---|---|
 | WhatsApp Business Cloud | routes/webhook, services/reply, services/handoff | Critical (MVP) | Setup in this phase |
-| Claude API | services/classify, services/reply, services/insights | Critical (MVP) | Setup in this phase |
-| OpenAI API | services/embed | Required for Phase 8 | Setup now, use later |
+| OpenAI API | services/classify, services/reply, services/insights, services/embed | Critical (MVP) | Setup in this phase |
+| Anthropic Claude API (optional future) | services/classify, services/reply | Optional | Not required for current MVP |
 | Supabase JS Client | All services | Critical (MVP) | Already configured in Phase 0 |
 | Team Notification (WhatsApp / Telegram / Email) | services/handoff | Required for Phase 5 | Setup in this phase |
 | Google Sheets API | services/sync | MVP dashboard | Setup before Phase 7 |
@@ -298,8 +298,8 @@ GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY=<private_key from JSON key>
 - [ ] Meta Developer App created, WhatsApp product added
 - [ ] WhatsApp Phone Number ID, Business Account ID, Access Token saved in `.env`
 - [ ] Webhook URL registered in Meta, verify token confirmed
-- [ ] Claude API key created and saved in `.env`
-- [ ] OpenAI API key created and saved in `.env` (for embeddings)
+- [ ] OpenAI API key created and saved in `.env`
+- [ ] (Optional future) Claude API key added if Anthropic support is implemented
 - [ ] Supabase connection tested from Node.js
 - [ ] Team notification channel chosen and configured
 - [ ] Google Sheets created, service account has editor access, saved in `.env`

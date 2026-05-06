@@ -33,6 +33,7 @@ The operational state managed by the team (not set by AI except for `needs_human
 |---|---|
 | `new` | Just created, no action taken |
 | `needs_human` | AI flagged for human review |
+| `human_active` | Human agent took over; AI replies are disabled |
 | `payment_link_sent` | Team sent payment link |
 | `booked` | Appointment confirmed |
 | `converted` | Paid / became official patient |
@@ -60,3 +61,13 @@ Array. Multiple tags per lead allowed.
 ## Migration Note
 
 `consultation_lead` and `program_lead` are replaced by `service_interest = consultation` and `service_interest = treatment_program`. Do not use them as `lead_temperature` values.
+
+## Human Takeover Behavior (MVP)
+
+- If `workflow_status = human_active`: AI must not generate/send replies. Incoming messages are still stored.
+- If `workflow_status = needs_human`: AI must not send automatic replies. A suggested/bridge reply may be generated only when explicitly allowed by safety/classification logic.
+- Returning AI control should set `workflow_status` back to `new` (or another operational status).
+
+Optional future improvement:
+
+- Add `ai_enabled BOOLEAN DEFAULT true` to decouple AI on/off from workflow progression.

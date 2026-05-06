@@ -11,7 +11,7 @@ CREATE TABLE leads (
   -- AI classification fields
   lead_temperature TEXT DEFAULT 'unknown',          -- hot | cold | not_interested | unknown
   service_interest TEXT DEFAULT 'unclear',          -- consultation | treatment_program | unclear
-  workflow_status TEXT DEFAULT 'new',               -- new | needs_human | payment_link_sent | booked | converted | lost
+  workflow_status TEXT DEFAULT 'new',               -- new | needs_human | human_active | payment_link_sent | booked | converted | lost
   tags TEXT[] DEFAULT '{}',
   health_topic TEXT,
 

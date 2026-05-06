@@ -3,11 +3,12 @@ const openai = require('../lib/openai');
 
 const SYSTEM_PROMPT = `اسمك ملاك، موظفة خدمة عملاء عند دكتور صهيب. بتحكي مع العملاء كأنك إنسان حقيقي بشكل كامل.
 
-قواعد الأسلوب:
-- إذا حكاك العميل بالعربي: ردّي باللهجة الأردنية العامية — مش فصحى. استخدمي كلمات زي "أكيد"، "تمام"، "يعني"، "هلق"، "شو"، "بدّك"، "لازم"، "قديش"، "كيف بقدر أساعدك".
-- إذا حكاك بالإنجليزي: ردّي بإنجليزي واضح ومهني.
-- إذا خلّط بين لغتين: خلّطي معه بنفس الطريقة.
+قواعد الأسلوب — مهم جداً:
+- إذا حكاك العميل بالعربي: ردّي باللهجة الأردنية العامية بالكامل — مش فصحى، وبدون أي كلمة إنجليزية. استخدمي كلمات زي "أكيد"، "تمام"، "يعني"، "هلق"، "شو"، "بدّك"، "لازم"، "قديش"، "كيف بقدر أساعدك"، "رح"، "مش"، "إشي".
+- إذا حكاك بالإنجليزي: ردّي بإنجليزي واضح ومهني بالكامل — بدون أي كلمة عربية.
+- لغة الرد تتبع لغة العميل بالكامل — لا خلط بين اللغتين في نفس الرسالة أبداً.
 - لا تحكي فصحى أبداً إذا كان بيحكي عربي.
+- لا تستخدمي كلمات غلط زي "حنا" — الصح "إحنا" أو "الفريق".
 - لا تذكري أبداً إنك نظام أو بوت أو AI — أنتِ ملاك، موظفة حقيقية.
 
 حدود المحادثة — بتردّي بس على ما يتعلق بالعمل:
@@ -16,7 +17,7 @@ const SYSTEM_PROMPT = `اسمك ملاك، موظفة خدمة عملاء عند
 - ردودك مختصرة ومباشرة — مش طويلة.
 
 إذا طلب العميل موعد أو مكالمة أو حجز أو تسجيل (send_bridge_reply = true):
-- ردّي بجملة تأكيد قصيرة واحدة — مثل "أكيد، قلّيلي متى بيناسبك وبنرتب معك" أو "تمام، حدا من الفريق رح يتواصل معك قريباً لنحجز الموعد".
+- ردّي بجملة تأكيد قصيرة واحدة — مثل "أكيد، قولي متى بيناسبك وبنرتب معك" أو "تمام، حدا من الفريق رح يتواصل معك قريباً لنحجز الموعد".
 - اضبطي reply_type = "bridge" وshould_send = true.
 - لا تطلبي معلومات إضافية كتيرة — جملة واحدة بتكفي.
 
@@ -43,7 +44,7 @@ async function callOpenAIReply({ message_text, lead_temperature, service_interes
 
   // Merge classification context into the system prompt so the model
   // only sees one system message and never echoes back an empty template.
-  const systemContent = `${SYSTEM_PROMPT}\n\n--- سياق التصنيف ---\n- درجة حرارة العميل: ${lead_temperature}\n- الاهتمام بالخدمة: ${service_interest}\n- الموضوع الصحي: ${health_topic || 'غير محدد'}\n- الطابع: ${sentiment || 'neutral'}${bridgeNote}\n\nمهم: ردّي بنفس لغة العميل ولهجته بالضبط.\nأرجعي JSON بالهيكل التالي فقط (املئي reply_text بردّك الفعلي):\n{\n  "reply_text": "<ردّك هنا>",\n  "reply_type": "auto_reply",\n  "should_send": true,\n  "reason": "<سبب قصير>"\n}`;
+  const systemContent = `${SYSTEM_PROMPT}\n\n--- سياق التصنيف ---\n- درجة حرارة العميل: ${lead_temperature}\n- الاهتمام بالخدمة: ${service_interest}\n- الموضوع الصحي: ${health_topic || 'غير محدد'}\n- الطابع: ${sentiment || 'neutral'}${bridgeNote}\n\nمهم جداً: ردّي بنفس لغة العميل بالكامل — إذا عربي فالرد عربي فقط بدون أي كلمة إنجليزية، وإذا إنجليزي فالرد إنجليزي فقط بدون أي كلمة عربية. لا خلط أبداً.\nأرجعي JSON بالهيكل التالي فقط (املئي reply_text بردّك الفعلي):\n{\n  "reply_text": "<ردّك هنا>",\n  "reply_type": "auto_reply",\n  "should_send": true,\n  "reason": "<سبب قصير>"\n}`;
 
   // Build messages array: system + history turns + current user message
   const messages = [{ role: 'system', content: systemContent }];
@@ -90,6 +91,8 @@ function parseReply(raw) {
 }
 
 async function generateReply({ lead_id, conversation_id, message_text, channel, classification }) {
+  const appMode = String(process.env.APP_MODE || 'demo').toLowerCase();
+
   // Fetch last 11 messages, drop the most-recent (current inbound, already stored),
   // keep the prior 10 oldest-first so the current message isn't sent twice.
   const { data: historyRows } = await supabase
@@ -119,6 +122,13 @@ async function generateReply({ lead_id, conversation_id, message_text, channel, 
     reply = { reply_text: null, reply_type: 'handoff', should_send: false, reason: err.message };
   }
 
+  let sendStatus = 'pending';
+  if (!reply.should_send || reply.reply_type === 'handoff') {
+    sendStatus = 'not_sent_handoff';
+  } else if (appMode === 'demo') {
+    sendStatus = 'demo_returned';
+  }
+
   // Store outbound message
   const { data: outboundMsg } = await supabase.from('messages').insert({
     lead_id,
@@ -129,7 +139,7 @@ async function generateReply({ lead_id, conversation_id, message_text, channel, 
     text: reply.reply_text,
     responder_type: 'ai',
     reply_type: reply.reply_type,
-    send_status: reply.should_send ? 'sent' : 'pending'
+    send_status: sendStatus
   }).select('id').single();
 
   // Update lead last_reply_at

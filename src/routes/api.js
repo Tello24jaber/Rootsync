@@ -6,7 +6,7 @@ const https = require('https');
 const os = require('os');
 const path = require('path');
 const supabase = require('../lib/supabase');
-const { uploadToSocial } = require('../services/social');
+const { uploadToSocial, SUPPORTED_SOCIAL_PLATFORMS } = require('../services/social');
 
 const upload = multer({
   dest: os.tmpdir(),
@@ -77,9 +77,9 @@ router.delete('/leads', async (req, res) => {
 
 // ─── PATCH /api/leads/:id ────────────────────────────────────────────────────
 // Used by the dashboard to manually stop/resume the AI agent for a lead.
-// Body: { workflow_status: 'needs_human' | 'human_active' | 'new' | ... }
+// Body: { workflow_status: 'new' | 'needs_human' | 'human_active' | 'payment_link_sent' | 'booked' | 'converted' | 'lost' }
 router.patch('/leads/:id', async (req, res) => {
-  const allowed = ['needs_human', 'human_active', 'new', 'open', 'resolved'];
+  const allowed = ['new', 'needs_human', 'human_active', 'payment_link_sent', 'booked', 'converted', 'lost'];
   const { workflow_status } = req.body || {};
   if (!workflow_status || !allowed.includes(workflow_status)) {
     return res.status(400).json({ error: `workflow_status must be one of: ${allowed.join(', ')}` });
@@ -141,13 +141,38 @@ router.post('/social/post', upload.single('file'), async (req, res) => {
   console.log('[social/post] Temp file renamed to:', filePath);
 
   let platforms = ['instagram'];
-  try { if (platformsRaw) platforms = JSON.parse(platformsRaw); } catch (_) {}
+  try {
+    if (platformsRaw) platforms = JSON.parse(platformsRaw);
+  } catch (_) {
+    return res.status(400).json({
+      error: 'Invalid platforms format. Expected a JSON array string, e.g. ["instagram","tiktok"]'
+    });
+  }
+
+  if (!Array.isArray(platforms) || !platforms.length) {
+    return res.status(400).json({
+      error: 'platforms must be a non-empty array',
+      supported_platforms: SUPPORTED_SOCIAL_PLATFORMS,
+      planned_later: ['youtube_shorts', 'threads']
+    });
+  }
+
+  const normalizedPlatforms = [...new Set(platforms.map(p => String(p || '').trim().toLowerCase()).filter(Boolean))];
+  const unsupported = normalizedPlatforms.filter(p => !SUPPORTED_SOCIAL_PLATFORMS.includes(p));
+  if (unsupported.length) {
+    return res.status(400).json({
+      error: `Unsupported platforms: ${unsupported.join(', ')}`,
+      supported_platforms: SUPPORTED_SOCIAL_PLATFORMS,
+      planned_later: ['youtube_shorts', 'threads']
+    });
+  }
+
   console.log('[social/post] Platforms:', platforms);
   console.log('[social/post] Title:', title);
 
   try {
     console.log('[social/post] Calling uploadToSocial…');
-    const result = await uploadToSocial(filePath, { title, platforms });
+    const result = await uploadToSocial(filePath, { title, platforms: normalizedPlatforms });
     console.log('[social/post] ✓ Success:', JSON.stringify(result));
     res.json({ success: true, result });
   } catch (err) {
@@ -166,6 +191,10 @@ router.get('/social/status', (req, res) => {
   if (!request_id) return res.status(400).json({ error: 'Missing request_id' });
 
   const apiKey = process.env.UPLOAD_POST_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: 'UPLOAD_POST_API_KEY environment variable is not set' });
+  }
+
   const options = {
     hostname: 'api.upload-post.com',
     path: `/api/uploadposts/status?request_id=${encodeURIComponent(request_id)}`,
@@ -180,6 +209,9 @@ router.get('/social/status', (req, res) => {
     let data = '';
     proxyRes.on('data', chunk => { data += chunk; });
     proxyRes.on('end', () => {
+      if (proxyRes.statusCode !== 200) {
+        console.warn(`[social/status] Upstream returned ${proxyRes.statusCode} for request_id=${request_id}:`, data);
+      }
       res.status(proxyRes.statusCode).setHeader('Content-Type', 'application/json').end(data);
     });
   });
